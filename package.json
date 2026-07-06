@@ -1,0 +1,14 @@
+{
+  "name": "theskyisnotreal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "the sky is not real — a satirical landing page on Cloudflare Workers",
+  "scripts": {
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.24.4"
+  }
+}
