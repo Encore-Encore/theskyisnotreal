@@ -321,6 +321,7 @@ section {
 .join__body { color: var(--ink-dim); font-size: 1.08rem; max-width: 52ch; margin: 0 auto 32px; }
 
 /* ---------- Ad slot ---------- */
+.ad-slot[hidden] { display: none; }
 .ad-slot {
   max-width: var(--maxw);
   margin: 0 auto clamp(40px, 8vw, 80px);
@@ -348,7 +349,7 @@ section {
   color: var(--ink);
   margin-bottom: 12px;
 }
-.footer__fine { color: var(--ink-dim); font-size: 0.9rem; max-width: 46ch; margin: 0 auto 14px; }
+.footer__fine { color: rgba(136, 145, 181, 0.42); font-size: 0.72rem; letter-spacing: 0.01em; max-width: 44ch; margin: 0 auto 14px; }
 .footer__meta { color: rgba(136, 145, 181, 0.6); font-size: 0.8rem; letter-spacing: 0.04em; }
 
 /* ---------- Scroll reveal ---------- */

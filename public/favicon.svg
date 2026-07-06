@@ -6,7 +6,7 @@
     </radialGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="url(#g)"/>
-  <!-- an eye: "Sky-Net is watching" -->
+  <!-- an all-seeing eye -->
   <ellipse cx="32" cy="32" rx="20" ry="12" fill="none" stroke="#4dd6ff" stroke-width="2.5"/>
   <circle cx="32" cy="32" r="6.5" fill="#7c5cff"/>
   <circle cx="32" cy="32" r="2.5" fill="#e8ecff"/>
