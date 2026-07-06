@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "theskyisnotreal",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-06",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  // Custom domain is attached during cutover. Kept commented so the first
+  // deploys land on the *.workers.dev preview URL without touching the live
+  // domain. Uncomment (and remove any conflicting DNS record) when ready.
+  // "routes": [
+  //   { "pattern": "theskyisnotreal.com", "custom_domain": true },
+  //   { "pattern": "www.theskyisnotreal.com", "custom_domain": true }
+  // ],
+  "observability": {
+    "enabled": true
+  }
+}

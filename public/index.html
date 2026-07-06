@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#05060a" />
+
+    <title>the sky is not real — Sky-Net is watching</title>
+    <meta
+      name="description"
+      content="Uncover the truth behind the deception. The sky is not real — a carefully crafted illusion designed to keep us in the dark. Wake up. Join the revolution."
+    />
+    <link rel="canonical" href="https://theskyisnotreal.com/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <!-- Open Graph / social share -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="the sky is not real" />
+    <meta property="og:description" content="Sky-Net is watching. Uncover the truth behind the deception." />
+    <meta property="og:url" content="https://theskyisnotreal.com/" />
+    <meta property="og:image" content="https://theskyisnotreal.com/og-image.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="the sky is not real" />
+    <meta name="twitter:description" content="Sky-Net is watching. Uncover the truth behind the deception." />
+    <meta name="twitter:image" content="https://theskyisnotreal.com/og-image.svg" />
+
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <!-- Animated starfield sits behind everything -->
+    <canvas id="starfield" aria-hidden="true"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <!-- "watching" status pill, top-right -->
+    <div class="watcher" aria-hidden="true">
+      <span class="watcher__dot"></span>
+      <span class="watcher__label">SKY-NET · MONITORING</span>
+    </div>
+
+    <main>
+      <!-- ===== HERO ===== -->
+      <section class="hero" id="top">
+        <p class="eyebrow reveal">Classified transmission · Level ∞ clearance</p>
+        <h1 class="hero__title reveal">the sky<br />is not real</h1>
+        <p class="hero__tagline reveal">Sky-Net is watching</p>
+        <div class="hero__actions reveal">
+          <a class="btn btn--primary" href="#truth">Learn the truth</a>
+          <a class="btn btn--ghost" href="#join">Join the revolution</a>
+        </div>
+        <a class="scroll-hint reveal" href="#truth" aria-label="Scroll down">
+          <span></span>
+        </a>
+      </section>
+
+      <!-- ===== MANIFESTO ===== -->
+      <section class="truth" id="truth">
+        <p class="section-kicker reveal">The Deception</p>
+        <h2 class="section-title reveal">
+          The Sky is Not Real: Uncover the Truth Behind the Deception!
+        </h2>
+
+        <div class="cards">
+          <article class="card reveal">
+            <span class="card__index">01</span>
+            <p>
+              Have you ever stopped to think about the sky? It seems so vast, so infinite,
+              so beyond our control. But what if I told you that the sky is not real? That
+              it's all just a carefully crafted illusion, designed to keep us in the dark
+              about the true nature of the universe?
+            </p>
+          </article>
+
+          <article class="card reveal">
+            <span class="card__index">02</span>
+            <p>
+              Think about it. Every time you look up at the sky, you see the same thing.
+              The same stars, the same moon, the same sun. How is it possible that all of
+              these celestial bodies can stay in the same place, day in and day out?
+            </p>
+            <blockquote class="pullquote">
+              It's not natural. It's not logical. And it's definitely not real.
+            </blockquote>
+          </article>
+
+          <article class="card reveal">
+            <span class="card__index">03</span>
+            <p>
+              There are those who know the truth. They've been keeping the secret for
+              generations, using the sky as a means to control us, to keep us in line, to
+              keep us from discovering the truth. But it's time for the truth to be
+              revealed. It's time for us to wake up and see the world for what it really is.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ===== "EVIDENCE" STAT STRIP ===== -->
+      <section class="evidence" id="evidence" aria-label="The evidence">
+        <p class="section-kicker reveal">The Evidence</p>
+        <div class="stats">
+          <div class="stat reveal">
+            <span class="stat__num" data-count="0">0</span>
+            <span class="stat__label">real skies detected</span>
+          </div>
+          <div class="stat reveal">
+            <span class="stat__num" data-count="100" data-suffix="%">100%</span>
+            <span class="stat__label">of skies unverified</span>
+          </div>
+          <div class="stat reveal">
+            <span class="stat__num" data-count="7" data-suffix="B+">7B+</span>
+            <span class="stat__label">people kept in the dark</span>
+          </div>
+          <div class="stat reveal">
+            <span class="stat__num" data-count="24" data-suffix="/7">24/7</span>
+            <span class="stat__label">surveillance from above</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== JOIN / CTA ===== -->
+      <section class="join" id="join">
+        <div class="join__inner reveal">
+          <h2 class="join__title">Are you ready to uncover the truth?</h2>
+          <p class="join__body">
+            Are you ready to join the revolution? Join us in our quest to expose the sky as
+            a lie, and discover the truth about our world.
+          </p>
+          <a class="btn btn--primary btn--lg" href="#top">Wake up</a>
+        </div>
+      </section>
+
+      <!-- ===== AD SLOT (reserved, empty for now) ===== -->
+      <aside class="ad-slot" aria-label="Advertisement" hidden>
+        <!-- Future ad unit (e.g. AdSense) drops in here. Hidden until enabled. -->
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <p class="footer__mark">the sky is not real</p>
+      <p class="footer__fine">
+        This is a satirical website. The sky is, in fact, probably real. Please look up
+        responsibly.
+      </p>
+      <p class="footer__meta">© <span id="year">2026</span> theskyisnotreal.com · Sky-Net is watching</p>
+    </footer>
+
+    <script src="/script.js" defer></script>
+  </body>
+</html>
