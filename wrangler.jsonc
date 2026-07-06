@@ -9,13 +9,13 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
   },
-  // Custom domain is attached during cutover. Kept commented so the first
-  // deploys land on the *.workers.dev preview URL without touching the live
-  // domain. Uncomment (and remove any conflicting DNS record) when ready.
-  // "routes": [
-  //   { "pattern": "theskyisnotreal.com", "custom_domain": true },
-  //   { "pattern": "www.theskyisnotreal.com", "custom_domain": true }
-  // ],
+  // Custom domain (cutover). The apex had no conflicting DNS record, so it
+  // attaches cleanly. `www` is added after its old CNAME record is removed
+  // (see README / cutover notes) to avoid a deploy-time conflict.
+  "routes": [
+    { "pattern": "theskyisnotreal.com", "custom_domain": true }
+    // { "pattern": "www.theskyisnotreal.com", "custom_domain": true }
+  ],
   "observability": {
     "enabled": true
   }
