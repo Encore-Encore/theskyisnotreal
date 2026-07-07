@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1250 250">
+  <!--
+    theskyisnotreal.com brand logo — 5:1, matches /public/favicon.svg.
+    Same mark (cloud struck through with a cyan slash) + wordmark, on the
+    site's dark cosmic background so it reads identically on any surface.
+    Source of truth for brand/logo.png (used on the AdSense consent banner).
+  -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="95%">
+      <stop offset="0%" stop-color="#141a3a"/>
+      <stop offset="55%" stop-color="#0b1026"/>
+      <stop offset="100%" stop-color="#05060a"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="16%" cy="45%" r="42%">
+      <stop offset="0%" stop-color="#7c5cff" stop-opacity="0.38"/>
+      <stop offset="100%" stop-color="#7c5cff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#cdd6ff"/>
+      <stop offset="100%" stop-color="#8f9be0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1250" height="250" rx="44" fill="url(#bg)"/>
+  <rect width="1250" height="250" rx="44" fill="url(#glow)"/>
+
+  <!-- favicon mark: the sky, cancelled -->
+  <g transform="translate(60,44) scale(2.6)">
+    <path d="M24 44 a9 9 0 0 1 0.5-17.5 a12 12 0 0 1 22.5 3.5 a8 8 0 0 1 -2 14 Z" fill="#cdd6ff"/>
+    <line x1="15" y1="49" x2="49" y2="15" stroke="#4dd6ff" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="220" y="158" fill="url(#ink)" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-weight="800" letter-spacing="-3" font-size="104">the sky is not real</text>
+</svg>
