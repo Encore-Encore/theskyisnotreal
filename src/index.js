@@ -62,6 +62,12 @@ export default {
       return handleA2A(request, url);
     }
 
+    // API catalog (RFC 9727): a machine-readable index of the site's APIs,
+    // advertised from the homepage via a `Link: rel="api-catalog"` header.
+    if (url.pathname === "/.well-known/api-catalog") {
+      return apiCatalog(url);
+    }
+
     // Shareable scan permalinks: /s/<id> serves the homepage (no redirect); the
     // client reads the id and reproduces that scan. noindex so search engines
     // don't index infinite variants (canonical already points to "/").
@@ -135,6 +141,51 @@ function agentCard(url) {
     headers: { ...A2A_CORS, "Cache-Control": "public, max-age=3600" },
   });
 }
+
+// ---------------------------------------------------------------- discovery links
+
+/**
+ * API catalog (RFC 9727) as a linkset (RFC 9264). Indexes the site's agent-
+ * facing API — the A2A endpoint — and links its machine-readable description
+ * (the Agent Card). Served as application/linkset+json.
+ */
+function apiCatalog(url) {
+  const o = url.origin;
+  const catalog = {
+    linkset: [
+      {
+        anchor: `${o}/a2a`,
+        "service-desc": [
+          {
+            href: `${o}/.well-known/agent-card.json`,
+            type: "application/json",
+            title: "A2A Agent Card",
+          },
+        ],
+        "service-doc": [
+          { href: `${o}/`, type: "text/html", title: "the sky is not real" },
+        ],
+      },
+    ],
+  };
+  return Response.json(catalog, {
+    headers: {
+      "Content-Type": "application/linkset+json",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+}
+
+/**
+ * RFC 8288 Link header advertised on HTML pages, pointing agents at the API
+ * catalog and the machine-readable Agent Card. Paths are origin-relative so the
+ * header is host-agnostic.
+ */
+const AGENT_LINK_HEADER = [
+  '</.well-known/api-catalog>; rel="api-catalog"',
+  '</.well-known/agent-card.json>; rel="service-desc"; type="application/json"',
+].join(", ");
 
 /** JSON-RPC 2.0 error response (HTTP 200 — the transport succeeded). */
 function rpcError(id, code, message) {
@@ -285,6 +336,9 @@ async function negotiateMarkdown(request, res, url) {
     // request through here, so the Worker is the authoritative place to set it).
     const cc = assetCacheControl(url.pathname);
     if (cc && res.status === 200) headers.set("Cache-Control", cc);
+    // RFC 8288 discovery links on HTML pages (points agents at the API catalog
+    // and Agent Card).
+    if (isHtml && res.status === 200) headers.set("Link", AGENT_LINK_HEADER);
     return new Response(res.body, {
       status: res.status,
       statusText: res.statusText,
@@ -299,6 +353,7 @@ async function negotiateMarkdown(request, res, url) {
   if (robots) headers.set("X-Robots-Tag", robots);
   headers.set("Content-Type", "text/markdown; charset=utf-8");
   headers.set("Vary", "Accept");
+  headers.set("Link", AGENT_LINK_HEADER);
 
   // HEAD carries no body to convert, advertise the type and stop there.
   if (request.method === "HEAD") {
