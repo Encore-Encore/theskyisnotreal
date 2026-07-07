@@ -10,6 +10,13 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // Canonicalize host: 301 www -> apex, preserving path + query, so search
+    // engines see a single canonical URL (matches the <link rel=canonical>).
+    if (url.hostname === "www.theskyisnotreal.com") {
+      url.hostname = "theskyisnotreal.com";
+      return Response.redirect(url.toString(), 301);
+    }
+
     // Reserved namespace for future dynamic endpoints. Returns 404 for now so
     // nothing accidentally falls through to a static asset.
     if (url.pathname.startsWith("/api/")) {
