@@ -188,7 +188,7 @@ test("GET /api/geo → 200 JSON with geo fields, no-store", async () => {
   assert.equal(res.status, 200);
   assert.equal(res.headers.get("Cache-Control"), "no-store");
   const body = await res.json();
-  for (const key of ["city", "region", "country", "colo"]) {
+  for (const key of ["city", "region", "country", "colo", "latitude", "longitude"]) {
     assert.ok(key in body, `missing key: ${key}`);
   }
 });
