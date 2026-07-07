@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#05060a" />
+    <title>404 — this page is also not real</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .nf {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px;
+        gap: 18px;
+      }
+      .nf__code {
+        font-size: clamp(4rem, 16vw, 9rem);
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        background: linear-gradient(180deg, #ffffff, #7f8bd6);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .nf__msg { font-size: clamp(1.1rem, 3vw, 1.6rem); font-weight: 600; color: #e8ecff; }
+      .nf__sub { color: #8891b5; max-width: 42ch; margin-bottom: 8px; }
+    </style>
+  </head>
+  <body>
+    <main class="nf">
+      <div class="nf__code">404</div>
+      <p class="nf__msg">This page is also not real.</p>
+      <p class="nf__sub">
+        You've wandered into a part of the sky that doesn't exist. Then again — none of it
+        does.
+      </p>
+      <a class="btn btn--primary" href="/">Back to the truth</a>
+    </main>
+  </body>
+</html>
