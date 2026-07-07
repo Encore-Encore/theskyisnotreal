@@ -77,8 +77,8 @@ body {
 }
 .watcher__dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: #ff5f6d;
-  box-shadow: 0 0 10px #ff5f6d;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
   animation: pulse 1.8s var(--ease) infinite;
 }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
@@ -255,6 +255,65 @@ section {
   font-weight: 600;
   font-style: italic;
   color: var(--ink);
+}
+
+/* ---------- The brief (deception) ---------- */
+.brief {
+  max-width: 760px;
+  margin: 0 auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.brief__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 22px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(11, 16, 38, 0.4);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.brief__stamp {
+  color: #ff9db0;
+  border: 1px solid rgba(255, 157, 176, 0.4);
+  border-radius: 6px;
+  padding: 3px 9px;
+}
+.brief__body {
+  padding: clamp(22px, 3.2vw, 34px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(18px, 2.4vw, 24px);
+}
+.brief__row {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.brief__label {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  padding-top: 4px;
+}
+.brief__row p { margin: 0; color: #cfd6f5; font-size: 1.04rem; line-height: 1.65; }
+.brief__quote { margin: 0; }
+@media (max-width: 560px) {
+  .brief__row { grid-template-columns: 1fr; gap: 6px; }
+  .brief__label { padding-top: 0; }
 }
 
 /* ---------- Evidence stats ---------- */
