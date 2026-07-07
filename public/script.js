@@ -180,6 +180,8 @@
     vp.appendChild(s);
   }
 
+  // STEPS are cosmetic log flavor (drawn with Math.random, NOT the seed), so the pool
+  // can grow freely without affecting shareable results.
   var STEPS = [
     "Initializing atmospheric probe",
     "Calibrating spectral analyzer",
@@ -190,10 +192,38 @@
     "Analyzing sun texture resolution",
     "Checking the horizon for infinite loops",
     "Decompiling cloud shaders",
-    "Auditing daylight ray-tracing"
+    "Auditing daylight ray-tracing",
+    "Pinging the firmament",
+    "Reverse-engineering the sunset gradient",
+    "Counting polygons in the moon",
+    "Sniffing clouds for JPEG artifacts",
+    "Requesting sky source code (403 Forbidden)",
+    "Comparing against the 1998 screensaver archive",
+    "Bruteforcing the horizon seed",
+    "Scanning for green-screen residue",
+    "Measuring the refresh rate of the sun",
+    "Checking daylight for compression banding"
   ];
-  var DIAGS = ["Elaborate hologram", "Painted ceiling", "Simulation layer 7", "Giant screensaver", "Recycled stock footage", "Low-res dome projection"];
-  var TEXES = ["240p", "potato", "480i", "16-bit", "blurry"];
+  // Seeded pools — appending re-maps only this dimension (pick() is a fixed 1 draw).
+  var DIAGS = [
+    "Elaborate hologram", "Painted ceiling", "Simulation layer 7", "Giant screensaver",
+    "Recycled stock footage", "Low-res dome projection", "Green-screen backdrop",
+    "Municipal projection dome", "Decommissioned planetarium", "AI-upscaled void",
+    "Government-issued ceiling", "Unrendered skybox", "Placeholder texture (forgot to swap)",
+    "Reused desktop wallpaper", "Lens flare, all the way down", "Off-the-shelf weather asset pack"
+  ];
+  var TEXES = ["240p", "potato", "480i", "16-bit", "blurry", "144p", "8-bit", "dial-up", "N64-era", "VHS", "compressed to oblivion"];
+  var RECS = [
+    "Advisory: do not make eye contact with the horizon.",
+    "Next step: tell three people, trust none of them.",
+    "Suggested response: act natural.",
+    "Protocol: blink twice if you can read this.",
+    "Guidance: the ceiling is load-bearing. Do not touch.",
+    "Reminder: clouds are just buffering.",
+    "Note: the warranty on reality has expired.",
+    "Directive: question everything above eye level.",
+    "Status: you were not supposed to see this."
+  ];
 
   // Seeded PRNG so a short id fully reproduces a scan result (stateless — no backend).
   function xmur3(str) {
@@ -223,7 +253,8 @@
 
   function pick(a) { return a[Math.floor(rng() * a.length)]; }
   function rand(a, b) { return Math.floor(a + rng() * (b - a + 1)); }
-  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  // Cosmetic step picker — uses Math.random (NOT the seed) so step count never shifts results.
+  function sampleN(a, n) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a.slice(0, n); }
 
   var busy = false;
   btn.addEventListener("click", function () { runScan(false); });
@@ -239,7 +270,7 @@
     logEl.innerHTML = "";
     btn.disabled = true;
     btn.textContent = "Scanning…";
-    var chosen = shuffle(STEPS).slice(0, 5);
+    var chosen = sampleN(STEPS, 5);
 
     if (instant || reduceMotion) {
       chosen.forEach(addLine);
@@ -268,23 +299,31 @@
     btn.disabled = false;
     btn.textContent = "Scan again";
 
-    // ~2% rare "REAL?!" fake-out. Always consume the same rng values so a seed
-    // reproduces identically regardless of reduced-motion; only the animation is gated.
+    // Seeded result — LOCKED draw order so a seed reproduces identically and future pool
+    // additions only re-map their own dimension (each pick/rand is a fixed 1 draw). Order:
+    // fake-out -> confidence -> diagnosis -> render-artifacts -> texture -> recommendation.
+    // The fake-out roll always consumes its draw (even under reduced motion) — only the
+    // animation is gated — so the stream stays identical across motion settings.
     var fakeoutRoll = rng() < 0.02;
     var conf = (97 + rng() * 2.9).toFixed(1);
+    var diag = pick(DIAGS);
+    var artifacts = rand(800, 2100).toLocaleString("en-US");
+    var tex = pick(TEXES);
+    var rec = pick(RECS);
     var fakeout = fakeoutRoll && !reduceMotion;
 
     resEl.innerHTML =
       '<div class="scanner__result' + (fakeout ? " scanner__result--real" : "") + '">' +
         '<div class="scanner__label">Verdict</div>' +
         '<div class="scanner__verdict" id="skyVerdict">' + (fakeout ? "REAL?!" : "FAKE") + "</div>" +
-        '<div class="scanner__diag">Diagnosis: ' + pick(DIAGS) + "</div>" +
+        '<div class="scanner__diag">Diagnosis: ' + diag + "</div>" +
         '<div class="scanner__metrics">' +
           '<div class="scanner__metric"><b>' + conf + '%</b><span>artificial (confidence)</span></div>' +
-          '<div class="scanner__metric"><b>' + rand(800, 2100).toLocaleString("en-US") + '</b><span>render artifacts</span></div>' +
+          '<div class="scanner__metric"><b>' + artifacts + '</b><span>render artifacts</span></div>' +
           '<div class="scanner__metric"><b>0</b><span>real clouds found</span></div>' +
-          '<div class="scanner__metric"><b>' + pick(TEXES) + '</b><span>sky texture res</span></div>' +
+          '<div class="scanner__metric"><b>' + tex + '</b><span>sky texture res</span></div>' +
         "</div>" +
+        '<p class="scanner__rec">' + rec + "</p>" +
         '<div class="scanner__controls" style="margin-top:16px">' +
           '<button class="btn btn--ghost" id="skyShare" type="button">Share the truth</button>' +
         "</div>" +

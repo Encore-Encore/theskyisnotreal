@@ -381,6 +381,7 @@ section {
   background-clip: text;
 }
 .scanner__diag { color: var(--ink); font-weight: 600; margin-top: 6px; }
+.scanner__rec { margin-top: 14px; color: var(--ink-dim); font-style: italic; font-size: 0.95rem; }
 .scanner__metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
