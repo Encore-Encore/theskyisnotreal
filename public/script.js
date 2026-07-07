@@ -170,12 +170,13 @@
   var toast = document.getElementById("skyToast");
   if (!vp || !btn) return;
 
-  // Visitor location (IP-based, from /api/geo) — powers the "we see you" line.
-  // Fetched once on load; NOT part of the seed, so it never affects shared results.
+  // Visitor location (IP-based, from /api/geo) — powers the "scanning the sky over
+  // <city>" line and the map zoom-to-your-sky. NOT part of the seed, so shared results
+  // are unaffected (each viewer just scans their own local sky).
   var geo = null;
   fetch("/api/geo")
     .then(function (r) { return r.json(); })
-    .then(function (g) { geo = g; paintGeo(); })
+    .then(function (g) { geo = g; paintGeo(); refreshMap(); })
     .catch(function () { geo = {}; paintGeo(); });
 
   // Stars inside the scanner viewport.
@@ -187,6 +188,95 @@
     s.style.opacity = (0.3 + Math.random() * 0.6).toFixed(2);
     vp.appendChild(s);
   }
+
+  // ---- Map "scan your local sky" layer ------------------------------------
+  // A self-contained equirectangular vector world map that zooms onto the
+  // visitor's coordinates. Per-viewer (uses live geo), never seeded.
+  var MAP_W = 1000, MAP_H = 500, SVGNS = "http://www.w3.org/2000/svg";
+  var LAND = null;
+  function proj(lon, lat) { return [(lon + 180) / 360 * MAP_W, (90 - lat) / 180 * MAP_H]; }
+
+  var mapWrap = document.createElement("div");
+  mapWrap.className = "scanner__map";
+  var mapSvg = document.createElementNS(SVGNS, "svg");
+  mapSvg.setAttribute("viewBox", "0 0 " + MAP_W + " " + MAP_H);
+  mapSvg.setAttribute("preserveAspectRatio", "xMidYMid slice");
+  var gridG = document.createElementNS(SVGNS, "g");
+  gridG.setAttribute("class", "scanner__grid");
+  var gstr = "";
+  for (var gl = -150; gl <= 150; gl += 30) { var gx = (gl + 180) / 360 * MAP_W; gstr += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + MAP_H + '"/>'; }
+  for (var ga = -60; ga <= 60; ga += 30) { var gy = (90 - ga) / 180 * MAP_H; gstr += '<line x1="0" y1="' + gy + '" x2="' + MAP_W + '" y2="' + gy + '"/>'; }
+  gridG.innerHTML = gstr;
+  var landPath = document.createElementNS(SVGNS, "path");
+  landPath.setAttribute("class", "scanner__land");
+  mapSvg.appendChild(gridG);
+  mapSvg.appendChild(landPath);
+  mapWrap.appendChild(mapSvg);
+  var reticle = document.createElement("div");
+  reticle.className = "scanner__reticle";
+  reticle.innerHTML =
+    '<div class="scanner__reticle-ring"></div>' +
+    '<div class="scanner__reticle-ring scanner__reticle-ring--pulse"></div>' +
+    '<div class="scanner__reticle-cross h"></div>' +
+    '<div class="scanner__reticle-cross v"></div>' +
+    '<div class="scanner__reticle-dot"></div>';
+  vp.appendChild(mapWrap);
+  vp.appendChild(reticle);
+
+  // Land data loads lazily (cached static asset); the map just stays hidden until ready.
+  fetch("/world-land.json")
+    .then(function (r) { return r.json(); })
+    .then(function (j) { LAND = j.d; landPath.setAttribute("d", LAND); refreshMap(); })
+    .catch(function () { /* no map — scanner falls back to the starfield */ });
+
+  // The visitor's projected point, or null if we don't have a usable fix yet.
+  function skyPoint() {
+    if (!geo || !LAND) return null;
+    var la = geo.latitude, lo = geo.longitude;
+    if (typeof la !== "number" || typeof lo !== "number" || isNaN(la) || isNaN(lo)) return null;
+    return proj(lo, la);
+  }
+  function boxAround(p, w) { var h = w / 2; return [p[0] - w / 2, p[1] - h / 2, w, h]; }
+  function setVB(v) { mapSvg.setAttribute("viewBox", v[0].toFixed(2) + " " + v[1].toFixed(2) + " " + v[2].toFixed(2) + " " + v[3].toFixed(2)); }
+  function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  var WORLD = [0, 0, MAP_W, MAP_H];
+
+  function animateVB(from, to, dur) {
+    return new Promise(function (res) {
+      var start = null;
+      function frame(ts) {
+        if (start === null) start = ts;
+        var p = Math.min((ts - start) / dur, 1), e = easeInOut(p), v = [];
+        for (var i = 0; i < 4; i++) v[i] = from[i] + (to[i] - from[i]) * e;
+        setVB(v);
+        if (p < 1) requestAnimationFrame(frame); else res(to);
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+  // Progressive world -> continent -> region -> city zoom (~2.1s).
+  function mapZoom(p) {
+    vp.classList.add("has-map"); vp.classList.remove("is-located");
+    setVB(WORLD);
+    var stages = [boxAround(p, 460), boxAround(p, 150), boxAround(p, 64)];
+    var durs = [800, 650, 650], cur = WORLD, seq = Promise.resolve();
+    stages.forEach(function (st, i) {
+      seq = seq.then(function () { return animateVB(cur, st, durs[i]).then(function (v) { cur = v; }); });
+    });
+    return seq;
+  }
+  function mapJump(p) { vp.classList.add("has-map"); setVB(boxAround(p, 64)); vp.classList.add("is-located"); }
+  function mapLock() { vp.classList.add("is-located"); }
+  function locatedStat() { statEl.textContent = "◉ " + geo.latitude.toFixed(4) + "°, " + geo.longitude.toFixed(4) + "°"; }
+  // If geo/land arrive AFTER a scan already finished (e.g. a shared /s/ link that
+  // scans on load), drop the located map in once the data is ready.
+  var scanShown = false;
+  function refreshMap() {
+    if (!scanShown || vp.classList.contains("is-located")) return;
+    var p = skyPoint();
+    if (p) { mapJump(p); locatedStat(); }
+  }
+  // -------------------------------------------------------------------------
 
   // STEPS are cosmetic log flavor (drawn with Math.random, NOT the seed), so the pool
   // can grow freely without affecting shareable results.
@@ -211,7 +301,8 @@
     "Scanning for green-screen residue",
     "Measuring the refresh rate of the sun",
     "Checking daylight for compression banding",
-    "Triangulating observer position"
+    "Locating your local sky",
+    "Centering the array on your coordinates"
   ];
   // Seeded pools — appending re-maps only this dimension (pick() is a fixed 1 draw).
   var DIAGS = [
@@ -280,14 +371,17 @@
     btn.disabled = true;
     btn.textContent = "Scanning…";
     var chosen = sampleN(STEPS, 5);
+    var p = skyPoint();
 
     if (instant || reduceMotion) {
+      if (p) mapJump(p);
       chosen.forEach(addLine);
       finish();
       return;
     }
     vp.classList.add("is-scanning");
-    statEl.textContent = "scanning…";
+    if (p) { statEl.textContent = "locating your sky…"; mapZoom(p); }
+    else { statEl.textContent = "scanning…"; }
     var i = 0;
     var t = setInterval(function () {
       if (i < chosen.length) { addLine(chosen[i]); i++; }
@@ -303,7 +397,9 @@
 
   function finish() {
     vp.classList.remove("is-scanning");
-    statEl.textContent = "analysis complete";
+    scanShown = true;
+    if (skyPoint()) { mapLock(); locatedStat(); }
+    else { statEl.textContent = "analysis complete"; }
     busy = false;
     btn.disabled = false;
     btn.textContent = "Scan again";
@@ -359,8 +455,8 @@
   function geoLabel() {
     var parts = geo ? [geo.city, geo.region].filter(Boolean) : [];
     if (!parts.length && geo && geo.country) parts.push(geo.country);
-    if (!parts.length) return "◉ Observer triangulated: [REDACTED].";
-    return "◉ We see you in " + parts.join(", ") + ".";
+    if (!parts.length) return "◉ Scanning your local sky…";
+    return "◉ Scanning the sky over " + parts.join(", ") + ".";
   }
   function paintGeo() {
     var el = document.getElementById("skyGeo");
