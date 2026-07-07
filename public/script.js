@@ -154,3 +154,150 @@
     start();
   }
 })();
+
+/* ============================================================
+   Sky scanner — fake "is the sky real?" analysis + shareable verdict
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var vp = document.getElementById("skyVp");
+  var statEl = document.getElementById("skyStat");
+  var logEl = document.getElementById("skyLog");
+  var btn = document.getElementById("skyScan");
+  var resEl = document.getElementById("skyRes");
+  var toast = document.getElementById("skyToast");
+  if (!vp || !btn) return;
+
+  // Stars inside the scanner viewport.
+  for (var i = 0; i < 26; i++) {
+    var s = document.createElement("span");
+    s.className = "scanner__star";
+    s.style.left = (Math.random() * 100) + "%";
+    s.style.top = (Math.random() * 100) + "%";
+    s.style.opacity = (0.3 + Math.random() * 0.6).toFixed(2);
+    vp.appendChild(s);
+  }
+
+  var STEPS = [
+    "Initializing atmospheric probe",
+    "Calibrating spectral analyzer",
+    "Cross-referencing 14,302 known clouds",
+    "Scanning for render artifacts",
+    "Measuring pixel density of the color blue",
+    "Detecting hard-coded star positions",
+    "Analyzing sun texture resolution",
+    "Checking the horizon for infinite loops",
+    "Decompiling cloud shaders",
+    "Auditing daylight ray-tracing"
+  ];
+  var DIAGS = ["Elaborate hologram", "Painted ceiling", "Simulation layer 7", "Giant screensaver", "Recycled stock footage", "Low-res dome projection"];
+  var TEXES = ["240p", "potato", "480i", "16-bit", "blurry"];
+
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function rand(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  var busy = false;
+  btn.addEventListener("click", function () { runScan(false); });
+
+  function runScan(instant) {
+    if (busy) return;
+    busy = true;
+    resEl.innerHTML = "";
+    logEl.innerHTML = "";
+    btn.disabled = true;
+    btn.textContent = "Scanning…";
+    var chosen = shuffle(STEPS).slice(0, 5);
+
+    if (instant || reduceMotion) {
+      chosen.forEach(addLine);
+      finish();
+      return;
+    }
+    vp.classList.add("is-scanning");
+    statEl.textContent = "scanning…";
+    var i = 0;
+    var t = setInterval(function () {
+      if (i < chosen.length) { addLine(chosen[i]); i++; }
+      else { clearInterval(t); finish(); }
+    }, 430);
+  }
+
+  function addLine(txt) {
+    var d = document.createElement("div");
+    d.textContent = "> " + txt + "…";
+    logEl.appendChild(d);
+  }
+
+  function finish() {
+    vp.classList.remove("is-scanning");
+    statEl.textContent = "analysis complete";
+    busy = false;
+    btn.disabled = false;
+    btn.textContent = "Scan again";
+
+    // ~2% rare "REAL?!" fake-out before it glitches back to FAKE.
+    var fakeout = !reduceMotion && Math.random() < 0.02;
+    var conf = (97 + Math.random() * 2.9).toFixed(1);
+
+    resEl.innerHTML =
+      '<div class="scanner__result' + (fakeout ? " scanner__result--real" : "") + '">' +
+        '<div class="scanner__label">Verdict</div>' +
+        '<div class="scanner__verdict" id="skyVerdict">' + (fakeout ? "REAL?!" : "FAKE") + "</div>" +
+        '<div class="scanner__diag">Diagnosis: ' + pick(DIAGS) + "</div>" +
+        '<div class="scanner__metrics">' +
+          '<div class="scanner__metric"><b>' + conf + '%</b><span>artificial (confidence)</span></div>' +
+          '<div class="scanner__metric"><b>' + rand(800, 2100).toLocaleString("en-US") + '</b><span>render artifacts</span></div>' +
+          '<div class="scanner__metric"><b>0</b><span>real clouds found</span></div>' +
+          '<div class="scanner__metric"><b>' + pick(TEXES) + '</b><span>sky texture res</span></div>' +
+        "</div>" +
+        '<div class="scanner__controls" style="margin-top:16px">' +
+          '<button class="btn btn--ghost" id="skyShare" type="button">Share the truth</button>' +
+        "</div>" +
+      "</div>";
+
+    if (fakeout) {
+      var wrap = resEl.firstChild;
+      var v = document.getElementById("skyVerdict");
+      setTimeout(function () {
+        wrap.classList.remove("scanner__result--real");
+        v.classList.add("scanner__glitch");
+        v.textContent = "FAKE";
+        setTimeout(function () { v.classList.remove("scanner__glitch"); }, 600);
+      }, 1100);
+    }
+
+    document.getElementById("skyShare").addEventListener("click", share);
+  }
+
+  function share() {
+    var url = location.origin + "/?scanned=fake";
+    var payload = { title: "the sky is not real", text: "I scanned the sky. Verdict: FAKE. See for yourself:", url: url };
+    if (navigator.share) {
+      navigator.share(payload).catch(function () {});
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(showToast, showToast);
+    } else {
+      showToast();
+    }
+  }
+
+  function showToast() {
+    toast.classList.add("is-visible");
+    setTimeout(function () { toast.classList.remove("is-visible"); }, 1900);
+  }
+
+  // Shared "?scanned=fake" links land on a pre-scanned result.
+  if (/[?&]scanned=fake\b/.test(location.search)) {
+    runScan(true);
+    var sec = document.getElementById("scan");
+    if (sec) {
+      setTimeout(function () {
+        sec.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+      }, 300);
+    }
+  }
+})();
+

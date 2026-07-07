@@ -98,6 +98,25 @@
         </div>
       </section>
 
+      <!-- ===== SKY SCANNER ===== -->
+      <section class="scanner" id="scan">
+        <p class="section-kicker reveal">Prove it yourself</p>
+        <h2 class="section-title reveal">Put the sky through our detector</h2>
+        <div class="scanner__panel reveal">
+          <div class="scanner__chip"><span class="scanner__dot"></span> sky integrity scanner · v2.4</div>
+          <div class="scanner__vp" id="skyVp" aria-hidden="true">
+            <div class="scanner__scanline"></div>
+            <div class="scanner__stat" id="skyStat">awaiting scan</div>
+          </div>
+          <div class="scanner__log" id="skyLog" role="status" aria-live="polite"></div>
+          <div class="scanner__controls">
+            <button class="btn btn--primary btn--lg" id="skyScan" type="button">Scan the sky</button>
+          </div>
+          <div id="skyRes"></div>
+          <div class="scanner__toast" id="skyToast">Link copied — the truth is spreading.</div>
+        </div>
+      </section>
+
       <!-- ===== "EVIDENCE" STAT STRIP ===== -->
       <section class="evidence" id="evidence" aria-label="The evidence">
         <p class="section-kicker reveal">The Evidence</p>

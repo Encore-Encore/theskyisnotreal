@@ -289,6 +289,135 @@ section {
   letter-spacing: 0.02em;
 }
 
+/* ---------- Sky scanner ---------- */
+.scanner__panel {
+  position: relative;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: clamp(20px, 3vw, 30px);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+.scanner__chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 16px;
+}
+.scanner__dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+.scanner__vp {
+  position: relative;
+  height: 140px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #101a44, #0a1030);
+  border: 1px solid var(--border);
+}
+.scanner__star { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; }
+.scanner__scanline {
+  position: absolute;
+  left: 0; right: 0; top: -12%;
+  height: 16px;
+  background: linear-gradient(180deg, transparent, rgba(77, 214, 255, 0.55), transparent);
+  opacity: 0;
+}
+.scanner__vp.is-scanning .scanner__scanline { opacity: 1; animation: sky-sweep 1.1s linear infinite; }
+@keyframes sky-sweep { 0% { top: -12%; } 100% { top: 100%; } }
+.scanner__stat {
+  position: absolute;
+  left: 14px; bottom: 12px;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #9fb0e0;
+}
+.scanner__log {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #9fb6e6;
+  min-height: 24px;
+  margin: 16px 0;
+}
+.scanner__log div { opacity: 0; animation: sky-fadein 0.3s forwards; }
+@keyframes sky-fadein { to { opacity: 1; } }
+.scanner__controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.scanner__result {
+  margin-top: 18px;
+  padding: 20px;
+  border-radius: 14px;
+  background: rgba(20, 26, 58, 0.5);
+  border: 1px solid rgba(255, 95, 109, 0.35);
+}
+.scanner__result--real { border-color: rgba(77, 214, 255, 0.45); }
+.scanner__label {
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-dim); margin-bottom: 8px;
+}
+.scanner__verdict {
+  font-size: clamp(2.4rem, 7vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  background: linear-gradient(120deg, #ff8a8a, #ff5f6d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.scanner__result--real .scanner__verdict {
+  background: linear-gradient(120deg, var(--cyan), var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.scanner__diag { color: var(--ink); font-weight: 600; margin-top: 6px; }
+.scanner__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.scanner__metric {
+  background: rgba(11, 16, 38, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+.scanner__metric b { display: block; font-size: 20px; font-weight: 800; color: var(--cyan); }
+.scanner__metric span { font-size: 11px; color: var(--ink-dim); }
+.scanner__toast {
+  position: absolute;
+  left: 50%; bottom: 16px;
+  transform: translateX(-50%);
+  background: #0a0e28;
+  border: 1px solid rgba(77, 214, 255, 0.4);
+  color: #cfe8ff;
+  font-size: 13px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+  pointer-events: none;
+}
+.scanner__toast.is-visible { opacity: 1; }
+.scanner__glitch { animation: sky-glitch 0.12s steps(2) 5; }
+@keyframes sky-glitch {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 1px); }
+  50% { transform: translate(2px, -1px); }
+  75% { transform: translate(-1px, -1px); }
+  100% { transform: translate(0, 0); }
+}
+
 /* ---------- Join / CTA ---------- */
 .join { text-align: center; }
 .join__inner {
@@ -362,4 +491,6 @@ section {
   html { scroll-behavior: auto; }
   .reveal { opacity: 1; transform: none; transition: none; }
   .watcher__dot { animation: none; }
+  .scanner__scanline, .scanner__glitch { animation: none !important; }
+  .scanner__log div { animation: none; opacity: 1; }
 }
