@@ -7,7 +7,10 @@
     "directory": "./public",
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    // Run the Worker before serving assets so host-level logic (the www->apex
+    // canonical 301) executes even for paths that match a static file.
+    "run_worker_first": true
   },
   // Custom domains (cutover complete). Both apex and www are attached to the
   // Worker; the old www CNAME was removed first to avoid a deploy-time conflict.
