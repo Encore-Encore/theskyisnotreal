@@ -1,5 +1,5 @@
 /* ============================================================
-   theskyisnotreal.com — interactions
+   theskyisnotreal.com, interactions
    - animated starfield (canvas)
    - scroll reveals (IntersectionObserver)
    - count-up stats
@@ -156,7 +156,7 @@
 })();
 
 /* ============================================================
-   Sky scanner — fake "is the sky real?" analysis + shareable verdict
+   Sky scanner, fake "is the sky real?" analysis + shareable verdict
    ============================================================ */
 (function () {
   "use strict";
@@ -170,7 +170,7 @@
   var toast = document.getElementById("skyToast");
   if (!vp || !btn) return;
 
-  // Visitor location (IP-based, from /api/geo) — powers the "scanning the sky over
+  // Visitor location (IP-based, from /api/geo), powers the "scanning the sky over
   // <city>" line and the map zoom-to-your-sky. NOT part of the seed, so shared results
   // are unaffected (each viewer just scans their own local sky).
   var geo = null;
@@ -223,8 +223,8 @@
   vp.appendChild(mapWrap);
   vp.appendChild(reticle);
 
-  // Land data (~60KB) loads lazily — only once the scanner nears the viewport or
-  // the visitor triggers a scan — so it stays off the initial load path. The map
+  // Land data (~60KB) loads lazily, only once the scanner nears the viewport or
+  // the visitor triggers a scan, so it stays off the initial load path. The map
   // just stays hidden until ready.
   var landRequested = false;
   function loadLand() {
@@ -233,7 +233,7 @@
     fetch("/world-land.json")
       .then(function (r) { return r.json(); })
       .then(function (j) { LAND = j.d; landPath.setAttribute("d", LAND); refreshMap(); })
-      .catch(function () { /* no map — scanner falls back to the starfield */ });
+      .catch(function () { /* no map, scanner falls back to the starfield */ });
   }
   if ("IntersectionObserver" in window) {
     var landIo = new IntersectionObserver(function (entries) {
@@ -322,7 +322,7 @@
     "Locating your local sky",
     "Centering the array on your coordinates"
   ];
-  // Seeded pools — appending re-maps only this dimension (pick() is a fixed 1 draw).
+  // Seeded pools, appending re-maps only this dimension (pick() is a fixed 1 draw).
   var DIAGS = [
     "Elaborate hologram", "Painted ceiling", "Simulation layer 7", "Giant screensaver",
     "Recycled stock footage", "Low-res dome projection", "Green-screen backdrop",
@@ -343,7 +343,7 @@
     "Status: you were not supposed to see this."
   ];
 
-  // Seeded PRNG so a short id fully reproduces a scan result (stateless — no backend).
+  // Seeded PRNG so a short id fully reproduces a scan result (stateless, no backend).
   function xmur3(str) {
     var h = 1779033703 ^ str.length;
     for (var i = 0; i < str.length; i++) {
@@ -371,7 +371,7 @@
 
   function pick(a) { return a[Math.floor(rng() * a.length)]; }
   function rand(a, b) { return Math.floor(a + rng() * (b - a + 1)); }
-  // Cosmetic step picker — uses Math.random (NOT the seed) so step count never shifts results.
+  // Cosmetic step picker, uses Math.random (NOT the seed) so step count never shifts results.
   function sampleN(a, n) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a.slice(0, n); }
 
   var busy = false;
@@ -423,11 +423,11 @@
     btn.disabled = false;
     btn.textContent = "Scan again";
 
-    // Seeded result — LOCKED draw order so a seed reproduces identically and future pool
+    // Seeded result, LOCKED draw order so a seed reproduces identically and future pool
     // additions only re-map their own dimension (each pick/rand is a fixed 1 draw). Order:
     // fake-out -> confidence -> diagnosis -> render-artifacts -> texture -> recommendation.
-    // The fake-out roll always consumes its draw (even under reduced motion) — only the
-    // animation is gated — so the stream stays identical across motion settings.
+    // The fake-out roll always consumes its draw (even under reduced motion), only the
+    // animation is gated, so the stream stays identical across motion settings.
     var fakeoutRoll = rng() < 0.02;
     var conf = (97 + rng() * 2.9).toFixed(1);
     var diag = pick(DIAGS);
@@ -469,7 +469,7 @@
     document.getElementById("skyShare").addEventListener("click", share);
   }
 
-  // Location line — city+region, else country, else redacted. Not seeded: shows
+  // Location line, city+region, else country, else redacted. Not seeded: shows
   // whoever is currently viewing (so a shared link says "we see YOU").
   function geoLabel() {
     var parts = geo ? [geo.city, geo.region].filter(Boolean) : [];
@@ -520,7 +520,7 @@
 })();
 
 /* ============================================================
-   Email signup — POST /api/subscribe, with visible feedback on every outcome
+   Email signup, POST /api/subscribe, with visible feedback on every outcome
    (success, duplicate, invalid email, and server/network errors). Never fails
    silently.
    ============================================================ */
@@ -533,9 +533,9 @@
   var msg = document.getElementById("signupMsg");
   if (!form || !input || !btn || !msg) return;
 
-  // Same liberal shape check the Worker uses — reject obvious junk, not edge cases.
+  // Same liberal shape check the Worker uses, reject obvious junk, not edge cases.
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  var INVALID_TEXT = "That doesn't look like a valid email — try again.";
+  var INVALID_TEXT = "That doesn't look like a valid email, try again.";
 
   function setMsg(text, kind) {
     msg.textContent = text;
@@ -592,16 +592,16 @@
       .then(function (r) {
         if (r.status === 200 && r.data && r.data.ok) {
           form.reset();
-          setMsg("You're on the list — welcome to the resistance.", "is-ok");
+          setMsg("You're on the list, welcome to the resistance.", "is-ok");
         } else if (r.status === 400 && r.data && r.data.error === "invalid_email") {
-          // Server rejected something the client let through — surface it, don't drop.
+          // Server rejected something the client let through, surface it, don't drop.
           markInvalid();
         } else {
-          setMsg("Something went wrong on our end — please try again.", "is-error");
+          setMsg("Something went wrong on our end, please try again.", "is-error");
         }
       })
       .catch(function () {
-        setMsg("Couldn't reach the mothership — check your connection and try again.", "is-error");
+        setMsg("Couldn't reach the mothership, check your connection and try again.", "is-error");
       })
       .then(function () {
         btn.disabled = false;
@@ -611,7 +611,7 @@
 })();
 
 /* ============================================================
-   Ad slots — only occupy space when an ad actually fills. AdSense sets
+   Ad slots, only occupy space when an ad actually fills. AdSense sets
    data-ad-status="filled" | "unfilled" on the <ins> once it resolves (async);
    mirror that onto the .ad-slot so unfilled slots collapse to nothing.
    ============================================================ */

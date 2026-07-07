@@ -1,5 +1,5 @@
 /**
- * theskyisnotreal.com — Cloudflare Worker
+ * theskyisnotreal.com, Cloudflare Worker
  *
  * The site is a static landing page served from ./public via the ASSETS
  * binding. This Worker sits in front of the assets so we have a place to add
@@ -22,7 +22,7 @@ export default {
       return handleSubscribe(request, env);
     }
 
-    // Visitor geo (IP-based, from Cloudflare — no permission prompt). Powers the
+    // Visitor geo (IP-based, from Cloudflare, no permission prompt). Powers the
     // scanner's "scanning the sky over <city>" line and the map zoom-to-location.
     // Per-visitor, never cached.
     if (url.pathname === "/api/geo") {
@@ -153,7 +153,7 @@ async function negotiateMarkdown(request, res, url) {
   headers.set("Content-Type", "text/markdown; charset=utf-8");
   headers.set("Vary", "Accept");
 
-  // HEAD carries no body to convert — advertise the type and stop there.
+  // HEAD carries no body to convert, advertise the type and stop there.
   if (request.method === "HEAD") {
     return new Response(null, { status: 200, headers });
   }
@@ -218,7 +218,7 @@ async function htmlToMarkdown(html, pageUrl) {
     " .ad-slot, aside[aria-label='Advertisement'], .watcher, .vignette";
 
   const transformed = new HTMLRewriter()
-    // Frontmatter sources — read before the generic `meta`/`title` drop rules run.
+    // Frontmatter sources, read before the generic `meta`/`title` drop rules run.
     .on("title", { text(t) { meta.title += t.text; } })
     .on('meta[name="description"]', {
       element(el) { meta.description = el.getAttribute("content") || meta.description; },
@@ -271,7 +271,7 @@ async function htmlToMarkdown(html, pageUrl) {
 
   // HTMLRewriter passes through any tag we didn't explicitly rewrite (wrapper
   // <div>/<section>/<span>s, comments, the doctype). Strip those, then decode
-  // entities — this also turns the markdown punctuation HTMLRewriter escaped on
+  // entities, this also turns the markdown punctuation HTMLRewriter escaped on
   // insertion (e.g. the blockquote ">" became "&gt;") back into real syntax.
   const body = decodeEntities(
     raw
@@ -305,7 +305,7 @@ async function htmlToMarkdown(html, pageUrl) {
   return { markdown, tokens, originalTokens };
 }
 
-// Basic-but-sane email shape check. Deliberately liberal — the goal is to reject
+// Basic-but-sane email shape check. Deliberately liberal, the goal is to reject
 // obvious junk (empty, no @, no dot), not to fully parse RFC 5322.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
