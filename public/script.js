@@ -223,11 +223,29 @@
   vp.appendChild(mapWrap);
   vp.appendChild(reticle);
 
-  // Land data loads lazily (cached static asset); the map just stays hidden until ready.
-  fetch("/world-land.json")
-    .then(function (r) { return r.json(); })
-    .then(function (j) { LAND = j.d; landPath.setAttribute("d", LAND); refreshMap(); })
-    .catch(function () { /* no map — scanner falls back to the starfield */ });
+  // Land data (~60KB) loads lazily — only once the scanner nears the viewport or
+  // the visitor triggers a scan — so it stays off the initial load path. The map
+  // just stays hidden until ready.
+  var landRequested = false;
+  function loadLand() {
+    if (landRequested) return;
+    landRequested = true;
+    fetch("/world-land.json")
+      .then(function (r) { return r.json(); })
+      .then(function (j) { LAND = j.d; landPath.setAttribute("d", LAND); refreshMap(); })
+      .catch(function () { /* no map — scanner falls back to the starfield */ });
+  }
+  if ("IntersectionObserver" in window) {
+    var landIo = new IntersectionObserver(function (entries) {
+      if (entries.some(function (e) { return e.isIntersecting; })) {
+        landIo.disconnect();
+        loadLand();
+      }
+    }, { rootMargin: "200px" });
+    landIo.observe(vp);
+  } else {
+    loadLand();
+  }
 
   // The visitor's projected point, or null if we don't have a usable fix yet.
   function skyPoint() {
@@ -361,6 +379,7 @@
 
   function runScan(instant, seed) {
     if (busy) return;
+    loadLand(); // ensure the map is loading even if the scan beat the scroll-in
     busy = true;
     if (!seed) seed = Math.floor(Math.random() * Math.pow(36, 5)).toString(36);
     currentSeed = seed;
@@ -615,5 +634,40 @@
       attributeFilter: ["data-ad-status"]
     });
   });
+})();
+
+/* ============================================================
+   Lazy-load the AdSense loader. Keeping the ~heavy third-party script off the
+   initial load path frees the main thread during first paint (big win for
+   mobile Total Blocking Time / TTI). We inject it on the first real user
+   interaction, with an idle fallback so visitors who never interact still get
+   ads. The per-slot push({}) calls in the HTML have already queued into
+   window.adsbygoogle; the loader drains that queue as soon as it arrives.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var CLIENT = "ca-pub-4698448614237305";
+  var events = ["pointerdown", "keydown", "touchstart", "scroll", "mousemove"];
+  var opts = { passive: true, capture: true };
+  var loaded = false;
+  var fallback;
+
+  function loadAds() {
+    if (loaded) return;
+    loaded = true;
+    clearTimeout(fallback);
+    events.forEach(function (e) { window.removeEventListener(e, loadAds, opts); });
+    var s = document.createElement("script");
+    s.async = true;
+    s.crossOrigin = "anonymous";
+    s.src =
+      "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" +
+      CLIENT;
+    document.head.appendChild(s);
+  }
+
+  events.forEach(function (e) { window.addEventListener(e, loadAds, opts); });
+  fallback = setTimeout(loadAds, 4000);
 })();
 
