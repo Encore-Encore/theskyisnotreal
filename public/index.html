@@ -33,12 +33,10 @@
 
     <link rel="stylesheet" href="/styles.css" />
 
-    <!-- Google AdSense loader -->
-    <script
-      async
-      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4698448614237305"
-      crossorigin="anonymous"
-    ></script>
+    <!-- Google AdSense: the loader is injected lazily by script.js on the first
+         user interaction (or a short idle fallback) so it never blocks the main
+         thread during initial load. The per-slot push({}) calls queue into
+         window.adsbygoogle until the loader arrives and drains them. -->
   </head>
   <body>
     <!-- Animated starfield sits behind everything -->

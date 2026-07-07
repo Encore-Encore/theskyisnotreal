@@ -3,8 +3,13 @@
   "name": "theskyisnotreal",
   "main": "src/index.js",
   "compatibility_date": "2026-07-06",
+  // Content-hash the CSS/JS bundles into ./dist before dev/deploy so /assets/*
+  // can be served immutably. Runs automatically ahead of `wrangler dev|deploy`.
+  "build": {
+    "command": "node build.js"
+  },
   "assets": {
-    "directory": "./public",
+    "directory": "./dist",
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",

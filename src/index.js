@@ -95,6 +95,22 @@ function prefersMarkdown(request) {
   return mdQ > 0 && mdQ >= htmlQ;
 }
 
+/**
+ * Cache-Control for a static asset path, or null to leave the asset server's
+ * default (HTML: `max-age=0, must-revalidate`). Content-hashed bundles under
+ * /assets/ never change under a given name, so they cache forever; stable-named
+ * media/data caches a week and revalidates after.
+ */
+function assetCacheControl(pathname) {
+  if (pathname.startsWith("/assets/")) {
+    return "public, max-age=31536000, immutable";
+  }
+  if (/\.(png|jpe?g|svg|ico|webp|gif|json|webmanifest|woff2?)$/i.test(pathname)) {
+    return "public, max-age=604800, stale-while-revalidate=86400";
+  }
+  return null;
+}
+
 /** Add a field to a Vary header without clobbering any existing entries. */
 function appendVary(headers, field) {
   const existing = (headers.get("Vary") || "")
@@ -118,6 +134,10 @@ async function negotiateMarkdown(request, res, url) {
   if (!isHtml || res.status !== 200 || !prefersMarkdown(request)) {
     const headers = new Headers(res.headers);
     appendVary(headers, "Accept");
+    // Long-lived caching for static assets (run_worker_first routes every asset
+    // request through here, so the Worker is the authoritative place to set it).
+    const cc = assetCacheControl(url.pathname);
+    if (cc && res.status === 200) headers.set("Cache-Control", cc);
     return new Response(res.body, {
       status: res.status,
       statusText: res.statusText,
