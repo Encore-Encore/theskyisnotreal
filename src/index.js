@@ -22,6 +22,21 @@ export default {
       return handleSubscribe(request, env);
     }
 
+    // Visitor geo (IP-based, from Cloudflare — no permission prompt). Powers the
+    // scanner's "we see you in <city>" surveillance gag. Per-visitor, never cached.
+    if (url.pathname === "/api/geo") {
+      const cf = request.cf || {};
+      return Response.json(
+        {
+          city: cf.city || null,
+          region: cf.region || null,
+          country: cf.country || null,
+          colo: cf.colo || null,
+        },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
     // Reserved namespace for future dynamic endpoints. Returns 404 for now so
     // nothing accidentally falls through to a static asset.
     if (url.pathname.startsWith("/api/")) {

@@ -183,6 +183,16 @@ test("unknown /api/* path → 404 not_found", async () => {
   assert.deepEqual(await res.json(), { error: "not_found" });
 });
 
+test("GET /api/geo → 200 JSON with geo fields, no-store", async () => {
+  const res = await mf.dispatchFetch("http://localhost/api/geo");
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("Cache-Control"), "no-store");
+  const body = await res.json();
+  for (const key of ["city", "region", "country", "colo"]) {
+    assert.ok(key in body, `missing key: ${key}`);
+  }
+});
+
 test("www host → 301 redirect to apex, preserving path + query", async () => {
   const res = await mf.dispatchFetch(
     "https://www.theskyisnotreal.com/about?x=1",

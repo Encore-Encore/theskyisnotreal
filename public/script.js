@@ -170,6 +170,14 @@
   var toast = document.getElementById("skyToast");
   if (!vp || !btn) return;
 
+  // Visitor location (IP-based, from /api/geo) — powers the "we see you" line.
+  // Fetched once on load; NOT part of the seed, so it never affects shared results.
+  var geo = null;
+  fetch("/api/geo")
+    .then(function (r) { return r.json(); })
+    .then(function (g) { geo = g; paintGeo(); })
+    .catch(function () { geo = {}; paintGeo(); });
+
   // Stars inside the scanner viewport.
   for (var i = 0; i < 26; i++) {
     var s = document.createElement("span");
@@ -202,7 +210,8 @@
     "Bruteforcing the horizon seed",
     "Scanning for green-screen residue",
     "Measuring the refresh rate of the sun",
-    "Checking daylight for compression banding"
+    "Checking daylight for compression banding",
+    "Triangulating observer position"
   ];
   // Seeded pools — appending re-maps only this dimension (pick() is a fixed 1 draw).
   var DIAGS = [
@@ -317,6 +326,7 @@
         '<div class="scanner__label">Verdict</div>' +
         '<div class="scanner__verdict" id="skyVerdict">' + (fakeout ? "REAL?!" : "FAKE") + "</div>" +
         '<div class="scanner__diag">Diagnosis: ' + diag + "</div>" +
+        '<p class="scanner__geo" id="skyGeo">◉ triangulating observer position…</p>' +
         '<div class="scanner__metrics">' +
           '<div class="scanner__metric"><b>' + conf + '%</b><span>artificial (confidence)</span></div>' +
           '<div class="scanner__metric"><b>' + artifacts + '</b><span>render artifacts</span></div>' +
@@ -328,6 +338,7 @@
           '<button class="btn btn--ghost" id="skyShare" type="button">Share the truth</button>' +
         "</div>" +
       "</div>";
+    paintGeo();
 
     if (fakeout) {
       var wrap = resEl.firstChild;
@@ -341,6 +352,19 @@
     }
 
     document.getElementById("skyShare").addEventListener("click", share);
+  }
+
+  // Location line — city+region, else country, else redacted. Not seeded: shows
+  // whoever is currently viewing (so a shared link says "we see YOU").
+  function geoLabel() {
+    var parts = geo ? [geo.city, geo.region].filter(Boolean) : [];
+    if (!parts.length && geo && geo.country) parts.push(geo.country);
+    if (!parts.length) return "◉ Observer triangulated: [REDACTED].";
+    return "◉ We see you in " + parts.join(", ") + ".";
+  }
+  function paintGeo() {
+    var el = document.getElementById("skyGeo");
+    if (el && geo) el.textContent = geoLabel();
   }
 
   function share() {
