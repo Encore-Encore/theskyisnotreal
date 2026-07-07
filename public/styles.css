@@ -441,18 +441,112 @@ section {
 }
 .join__body { color: var(--ink-dim); font-size: 1.08rem; max-width: 52ch; margin: 0 auto 32px; }
 
-/* ---------- Ad slot ---------- */
+/* ---------- Signup form ---------- */
+.signup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  max-width: 520px;
+  margin: 0 auto;
+}
+.signup__input {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 15px 20px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--ink);
+  background: rgba(8, 10, 24, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.signup__input::placeholder { color: rgba(136, 145, 181, 0.55); }
+.signup__input:focus {
+  outline: none;
+  border-color: rgba(77, 214, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(77, 214, 255, 0.15);
+}
+.signup__input[aria-invalid="true"] {
+  border-color: rgba(255, 95, 109, 0.7);
+  box-shadow: 0 0 0 3px rgba(255, 95, 109, 0.15);
+}
+.signup__msg {
+  min-height: 1.4em;
+  margin: 16px auto 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.signup__msg.is-ok { color: var(--cyan); }
+.signup__msg.is-error { color: #ff8a8a; }
+
+/* ---------- FAQ ---------- */
+.faq__list {
+  max-width: 780px;
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+}
+.faq__item {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 4px clamp(18px, 3vw, 28px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.faq__item summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 18px 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.faq__item summary::-webkit-details-marker { display: none; }
+.faq__item summary::after {
+  content: "+";
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: var(--cyan);
+  transition: transform 0.25s var(--ease);
+}
+.faq__item[open] summary::after { transform: rotate(45deg); }
+.faq__item p {
+  color: #cfd6f5;
+  font-size: 1rem;
+  padding: 0 0 18px;
+  margin: 0;
+}
+.faq__item a { color: var(--cyan); }
+
+/* ---------- Ad slots ---------- */
 .ad-slot[hidden] { display: none; }
 .ad-slot {
   max-width: var(--maxw);
+  /* min-height reserves space so ads loading in don't shift the layout (CLS). */
+  min-height: 100px;
   margin: 0 auto clamp(40px, 8vw, 80px);
-  min-height: 90px;
+  padding: 0 clamp(22px, 6vw, 56px);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed var(--border);
-  border-radius: 14px;
-  color: var(--ink-dim);
+  overflow: hidden;
+}
+/* Top banner sits below the fixed watcher pill; give it a little breathing room. */
+.ad-slot--top {
+  margin-top: clamp(56px, 9vw, 90px);
+  margin-bottom: 0;
+}
+.ad-slot .adsbygoogle {
+  display: block;
+  width: 100%;
 }
 
 /* ---------- Footer ---------- */
@@ -470,8 +564,60 @@ section {
   color: var(--ink);
   margin-bottom: 12px;
 }
+.footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 22px;
+  margin-bottom: 18px;
+}
+.footer__nav a {
+  color: var(--ink-dim);
+  text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  transition: color 0.25s var(--ease);
+}
+.footer__nav a:hover { color: var(--cyan); }
 .footer__fine { color: rgba(136, 145, 181, 0.42); font-size: 0.72rem; letter-spacing: 0.01em; max-width: 44ch; margin: 0 auto 14px; }
 .footer__meta { color: rgba(136, 145, 181, 0.6); font-size: 0.8rem; letter-spacing: 0.04em; }
+
+/* ---------- Content / prose pages (about, contact, privacy, disclaimer) ---------- */
+.page { min-height: 70vh; padding-top: clamp(80px, 12vh, 140px); }
+.page__eyebrow { margin-bottom: 22px; }
+.page__title {
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #cdd6ff 60%, #7f8bd6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.page__lead { color: var(--ink-dim); font-size: 1.1rem; max-width: 60ch; margin-bottom: 34px; }
+.prose { max-width: 68ch; }
+.prose h2 {
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 36px 0 12px;
+  color: var(--ink);
+}
+.prose p, .prose li { color: #cfd6f5; font-size: 1.02rem; margin-bottom: 14px; }
+.prose ul { padding-left: 1.2em; margin-bottom: 14px; }
+.prose li { margin-bottom: 8px; }
+.prose a { color: var(--cyan); }
+.prose strong { color: var(--ink); }
+.prose .back-link {
+  display: inline-block;
+  margin-top: 40px;
+  color: var(--cyan);
+  text-decoration: none;
+  font-weight: 600;
+}
+.prose .back-link:hover { text-decoration: underline; }
 
 /* ---------- Scroll reveal ---------- */
 .reveal {

@@ -18,6 +18,14 @@
     { "pattern": "theskyisnotreal.com", "custom_domain": true },
     { "pattern": "www.theskyisnotreal.com", "custom_domain": true }
   ],
+  // D1 database backing the email-signup form (POST /api/subscribe).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "theskyisnotreal-db",
+      "database_id": "14e337e8-88d8-40a5-bd7a-d0248511ace2"
+    }
+  ],
   "observability": {
     "enabled": true
   }

@@ -341,3 +341,94 @@
   }
 })();
 
+/* ============================================================
+   Email signup — POST /api/subscribe, with visible feedback on every outcome
+   (success, duplicate, invalid email, and server/network errors). Never fails
+   silently.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var form = document.getElementById("signup");
+  var input = document.getElementById("signupEmail");
+  var btn = document.getElementById("signupBtn");
+  var msg = document.getElementById("signupMsg");
+  if (!form || !input || !btn || !msg) return;
+
+  // Same liberal shape check the Worker uses — reject obvious junk, not edge cases.
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var INVALID_TEXT = "That doesn't look like a valid email — try again.";
+
+  function setMsg(text, kind) {
+    msg.textContent = text;
+    msg.classList.remove("is-ok", "is-error");
+    if (kind) msg.classList.add(kind);
+  }
+
+  function markInvalid() {
+    input.setAttribute("aria-invalid", "true");
+    setMsg(INVALID_TEXT, "is-error");
+    input.focus();
+  }
+
+  function clearInvalid() {
+    input.removeAttribute("aria-invalid");
+  }
+
+  // Clear the error state as soon as the user starts fixing the field.
+  input.addEventListener("input", function () {
+    if (input.getAttribute("aria-invalid") === "true") {
+      clearInvalid();
+      setMsg("", null);
+    }
+  });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    var email = input.value.trim().toLowerCase();
+
+    // Client-side guard: show a visible error, don't submit.
+    if (!EMAIL_RE.test(email) || email.length > 254) {
+      markInvalid();
+      return;
+    }
+
+    clearInvalid();
+    btn.disabled = true;
+    var originalLabel = btn.textContent;
+    btn.textContent = "Signing you up…";
+    setMsg("", null);
+
+    fetch("/api/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email })
+    })
+      .then(function (res) {
+        return res
+          .json()
+          .catch(function () { return {}; })
+          .then(function (data) { return { status: res.status, data: data }; });
+      })
+      .then(function (r) {
+        if (r.status === 200 && r.data && r.data.ok) {
+          form.reset();
+          setMsg("You're on the list — welcome to the resistance.", "is-ok");
+        } else if (r.status === 400 && r.data && r.data.error === "invalid_email") {
+          // Server rejected something the client let through — surface it, don't drop.
+          markInvalid();
+        } else {
+          setMsg("Something went wrong on our end — please try again.", "is-error");
+        }
+      })
+      .catch(function () {
+        setMsg("Couldn't reach the mothership — check your connection and try again.", "is-error");
+      })
+      .then(function () {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      });
+  });
+})();
+
