@@ -195,16 +195,46 @@
   var DIAGS = ["Elaborate hologram", "Painted ceiling", "Simulation layer 7", "Giant screensaver", "Recycled stock footage", "Low-res dome projection"];
   var TEXES = ["240p", "potato", "480i", "16-bit", "blurry"];
 
-  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
-  function rand(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
-  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  // Seeded PRNG so a short id fully reproduces a scan result (stateless — no backend).
+  function xmur3(str) {
+    var h = 1779033703 ^ str.length;
+    for (var i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return function () {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      return (h ^= h >>> 16) >>> 0;
+    };
+  }
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6d2b79f5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function seedRng(seed) { return mulberry32(xmur3(seed)()); }
+
+  var rng = Math.random;   // swapped for a seeded generator at the start of each scan
+  var currentSeed = null;
+
+  function pick(a) { return a[Math.floor(rng() * a.length)]; }
+  function rand(a, b) { return Math.floor(a + rng() * (b - a + 1)); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
   var busy = false;
   btn.addEventListener("click", function () { runScan(false); });
 
-  function runScan(instant) {
+  function runScan(instant, seed) {
     if (busy) return;
     busy = true;
+    if (!seed) seed = Math.floor(Math.random() * Math.pow(36, 5)).toString(36);
+    currentSeed = seed;
+    rng = seedRng(seed);
+    try { history.replaceState(null, "", "/s/" + seed); } catch (e) { /* ignore */ }
     resEl.innerHTML = "";
     logEl.innerHTML = "";
     btn.disabled = true;
@@ -238,9 +268,11 @@
     btn.disabled = false;
     btn.textContent = "Scan again";
 
-    // ~2% rare "REAL?!" fake-out before it glitches back to FAKE.
-    var fakeout = !reduceMotion && Math.random() < 0.02;
-    var conf = (97 + Math.random() * 2.9).toFixed(1);
+    // ~2% rare "REAL?!" fake-out. Always consume the same rng values so a seed
+    // reproduces identically regardless of reduced-motion; only the animation is gated.
+    var fakeoutRoll = rng() < 0.02;
+    var conf = (97 + rng() * 2.9).toFixed(1);
+    var fakeout = fakeoutRoll && !reduceMotion;
 
     resEl.innerHTML =
       '<div class="scanner__result' + (fakeout ? " scanner__result--real" : "") + '">' +
@@ -273,8 +305,8 @@
   }
 
   function share() {
-    var url = location.origin + "/?scanned=fake";
-    var payload = { title: "the sky is not real", text: "I scanned the sky. Verdict: FAKE. See for yourself:", url: url };
+    var url = location.origin + "/s/" + currentSeed;
+    var payload = { title: "the sky is not real", text: "I ran the sky through the detector. See what it found:", url: url };
     if (navigator.share) {
       navigator.share(payload).catch(function () {});
     } else if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -289,15 +321,23 @@
     setTimeout(function () { toast.classList.remove("is-visible"); }, 1900);
   }
 
-  // Shared "?scanned=fake" links land on a pre-scanned result.
-  if (/[?&]scanned=fake\b/.test(location.search)) {
-    runScan(true);
+  // Shared links land on a pre-scanned result. New: /s/<id> reproduces the exact
+  // scan; old ?scanned=fake links still work (random scan).
+  function afterDeepLink() {
     var sec = document.getElementById("scan");
     if (sec) {
       setTimeout(function () {
         sec.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
       }, 300);
     }
+  }
+  var seedMatch = location.pathname.match(/^\/s\/([a-z0-9]+)$/i);
+  if (seedMatch) {
+    runScan(true, seedMatch[1]);
+    afterDeepLink();
+  } else if (/[?&]scanned=fake\b/.test(location.search)) {
+    runScan(true);
+    afterDeepLink();
   }
 })();
 

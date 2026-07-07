@@ -23,6 +23,16 @@ export default {
       return Response.json({ error: "not_found" }, { status: 404 });
     }
 
+    // Shareable scan permalinks: /s/<id> serves the homepage (no redirect); the
+    // client reads the id and reproduces that scan. noindex so search engines
+    // don't index infinite variants (canonical already points to "/").
+    if (url.pathname.startsWith("/s/")) {
+      const res = await env.ASSETS.fetch(new Request(new URL("/", url), request));
+      const headers = new Headers(res.headers);
+      headers.set("X-Robots-Tag", "noindex");
+      return new Response(res.body, { status: res.status, headers });
+    }
+
     // Serve the static site (HTML/CSS/JS/images) from ./public.
     return env.ASSETS.fetch(request);
   },
