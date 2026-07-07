@@ -1,4 +1,11 @@
+# Content signals declare how this site's content may be used after it's accessed.
+#   search    = build a search index and show results (links, snippets)
+#   ai-input  = use as real-time input to AI answers ("RAG" / grounding)
+#   ai-train  = use to train or fine-tune AI models
+# "yes" = permitted, "no" = objected to; an omitted signal declares no preference.
+# See https://contentsignals.org/ for details.
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Allow: /
 
 Sitemap: https://theskyisnotreal.com/sitemap.xml
