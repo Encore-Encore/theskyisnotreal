@@ -530,8 +530,6 @@ section {
 .ad-slot[hidden] { display: none; }
 .ad-slot {
   max-width: var(--maxw);
-  /* min-height reserves space so ads loading in don't shift the layout (CLS). */
-  min-height: 100px;
   margin: 0 auto clamp(40px, 8vw, 80px);
   padding: 0 clamp(22px, 6vw, 56px);
   display: flex;
@@ -548,6 +546,11 @@ section {
   display: block;
   width: 100%;
 }
+/* Take up space only when there's an ad. AdSense sets data-ad-status="unfilled"
+   on the <ins> when it has nothing to serve; `script.js` mirrors that onto the
+   slot as .ad-slot--empty so the whole slot (margins too) collapses to nothing. */
+.ad-slot--empty { display: none; margin: 0; }
+ins.adsbygoogle[data-ad-status="unfilled"] { display: none; }
 
 /* ---------- Footer ---------- */
 .footer {

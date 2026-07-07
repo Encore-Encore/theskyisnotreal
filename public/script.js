@@ -432,3 +432,29 @@
   });
 })();
 
+/* ============================================================
+   Ad slots — only occupy space when an ad actually fills. AdSense sets
+   data-ad-status="filled" | "unfilled" on the <ins> once it resolves (async);
+   mirror that onto the .ad-slot so unfilled slots collapse to nothing.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  function sync(ins) {
+    var slot = ins.closest(".ad-slot");
+    if (!slot) return;
+    var status = ins.getAttribute("data-ad-status");
+    if (status === "unfilled") slot.classList.add("ad-slot--empty");
+    else if (status === "filled") slot.classList.remove("ad-slot--empty");
+  }
+
+  var units = document.querySelectorAll(".ad-slot ins.adsbygoogle");
+  units.forEach(function (ins) {
+    sync(ins); // in case status is already set by the time we run
+    new MutationObserver(function () { sync(ins); }).observe(ins, {
+      attributes: true,
+      attributeFilter: ["data-ad-status"]
+    });
+  });
+})();
+
