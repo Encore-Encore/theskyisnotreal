@@ -47,6 +47,21 @@ export default {
       return Response.json({ error: "not_found" }, { status: 404 });
     }
 
+    // A2A (Agent2Agent) surface. This is the real endpoint the site advertises
+    // for agent discovery (DNS-AID `_a2a._agents.theskyisnotreal.com` and the
+    // well-known Agent Card). The Agent Card describes the agent; /a2a is its
+    // JSON-RPC 2.0 endpoint. `agent-card.json` is the current well-known name;
+    // `agent.json` is served too for older A2A clients.
+    if (
+      url.pathname === "/.well-known/agent-card.json" ||
+      url.pathname === "/.well-known/agent.json"
+    ) {
+      return agentCard(url);
+    }
+    if (url.pathname === "/a2a") {
+      return handleA2A(request, url);
+    }
+
     // Shareable scan permalinks: /s/<id> serves the homepage (no redirect); the
     // client reads the id and reproduces that scan. noindex so search engines
     // don't index infinite variants (canonical already points to "/").
@@ -67,6 +82,138 @@ export default {
     return negotiateMarkdown(request, res, url);
   },
 };
+
+// ---------------------------------------------------------------- a2a agent
+
+// A2A is a public, unauthenticated agent, so allow cross-origin calls (browser
+// agents included) and answer CORS preflight.
+const A2A_CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+/**
+ * A2A Agent Card (served at the well-known paths). Describes the agent and,
+ * crucially, points at the JSON-RPC endpoint via an absolute `url` derived from
+ * the request origin (apex host, since www is 301'd away).
+ */
+function agentCard(url) {
+  const card = {
+    protocolVersion: "0.2.5",
+    name: "Deception Detector",
+    description:
+      "A satirical A2A agent for theskyisnotreal.com. Give it a location or a " +
+      "claim and it returns a (tongue-in-cheek) verdict on whether the sky is real.",
+    url: `${url.origin}/a2a`,
+    preferredTransport: "JSONRPC",
+    version: "1.0.0",
+    provider: {
+      organization: "theskyisnotreal.com",
+      url: url.origin,
+    },
+    capabilities: {
+      streaming: false,
+      pushNotifications: false,
+      stateTransitionHistory: false,
+    },
+    defaultInputModes: ["text/plain"],
+    defaultOutputModes: ["text/plain"],
+    skills: [
+      {
+        id: "sky-scan",
+        name: "Sky reality scan",
+        description:
+          "Analyzes a location or claim and returns a satirical verdict on the " +
+          "sky's authenticity. Entertainment only; the sky is, in fact, probably real.",
+        tags: ["satire", "sky", "scan"],
+        examples: ["Scan the sky over Denver", "Is the sky real?"],
+      },
+    ],
+  };
+  return Response.json(card, {
+    headers: { ...A2A_CORS, "Cache-Control": "public, max-age=3600" },
+  });
+}
+
+/** JSON-RPC 2.0 error response (HTTP 200 — the transport succeeded). */
+function rpcError(id, code, message) {
+  return Response.json(
+    { jsonrpc: "2.0", id: id ?? null, error: { code, message } },
+    { headers: A2A_CORS }
+  );
+}
+
+/** JSON-RPC 2.0 success response. */
+function rpcResult(id, result) {
+  return Response.json({ jsonrpc: "2.0", id, result }, { headers: A2A_CORS });
+}
+
+/**
+ * A2A JSON-RPC 2.0 endpoint. Stateless: `message/send` returns an agent Message
+ * directly (no Task lifecycle). Streaming and task storage aren't supported, so
+ * those methods return the appropriate JSON-RPC errors.
+ */
+async function handleA2A(request, url) {
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: A2A_CORS });
+  }
+  if (request.method !== "POST") {
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: { ...A2A_CORS, Allow: "POST, OPTIONS" },
+    });
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch (_) {
+    return rpcError(null, -32700, "Parse error");
+  }
+
+  const { jsonrpc, id, method, params } = body || {};
+  if (jsonrpc !== "2.0" || typeof method !== "string") {
+    return rpcError(id ?? null, -32600, "Invalid Request");
+  }
+
+  switch (method) {
+    case "message/send": {
+      const parts = params && params.message && params.message.parts;
+      const userText = Array.isArray(parts)
+        ? parts
+            .filter((p) => p && (p.kind === "text" || typeof p.text === "string"))
+            .map((p) => p.text)
+            .join(" ")
+            .trim()
+        : "";
+      return rpcResult(id, {
+        kind: "message",
+        role: "agent",
+        messageId: crypto.randomUUID(),
+        parts: [{ kind: "text", text: skyVerdict(userText) }],
+      });
+    }
+    case "message/stream":
+      return rpcError(id, -32601, "Streaming is not supported by this agent");
+    case "tasks/get":
+      // Stateless agent — no tasks are ever persisted.
+      return rpcError(id, -32001, "Task not found");
+    default:
+      return rpcError(id, -32601, "Method not found");
+  }
+}
+
+/** The (satirical) core "skill": turn a prompt into a sky-authenticity verdict. */
+function skyVerdict(userText) {
+  const subject = userText ? `"${userText.slice(0, 140)}"` : "the sky above you";
+  return (
+    `Scan complete. Analysis of ${subject} returns a 99.9% synthetic reading: ` +
+    `suspiciously consistent hue, render-distance clouds, a sun that follows the ` +
+    `observer. Recommendation: keep looking up, keep doubting. ` +
+    `(Note: this is a satirical agent. The sky is, in fact, probably real.)`
+  );
+}
 
 // ---------------------------------------------------------------- markdown negotiation
 
