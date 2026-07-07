@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1250 250">
+  <!--
+    Light-background variant of brand/logo.svg — for surfaces like the Google
+    AdSense consent banner (typically white). Transparent background; the mark
+    and wordmark are inverted to dark ink so they read on light. Same geometry
+    and cyan slash as the favicon.
+  -->
+  <defs>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#12173a"/>
+      <stop offset="100%" stop-color="#5540c8"/>
+    </linearGradient>
+    <linearGradient id="cloud" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a4390"/>
+      <stop offset="100%" stop-color="#1a2150"/>
+    </linearGradient>
+  </defs>
+
+  <!-- favicon mark: the sky, cancelled (inverted for light backgrounds) -->
+  <g transform="translate(60,44) scale(2.6)">
+    <path d="M24 44 a9 9 0 0 1 0.5-17.5 a12 12 0 0 1 22.5 3.5 a8 8 0 0 1 -2 14 Z" fill="url(#cloud)"/>
+    <line x1="15" y1="49" x2="49" y2="15" stroke="#2fb8e0" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="220" y="158" fill="url(#ink)" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-weight="800" letter-spacing="-3" font-size="104">the sky is not real</text>
+</svg>
