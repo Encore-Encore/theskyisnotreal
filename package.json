@@ -2,13 +2,16 @@
   "name": "theskyisnotreal",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "the sky is not real — a satirical landing page on Cloudflare Workers",
   "scripts": {
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test": "node --test 'test/**/*.test.js'"
   },
   "devDependencies": {
+    "miniflare": "^4.20260701.0",
     "wrangler": "^4.24.4"
   }
 }
