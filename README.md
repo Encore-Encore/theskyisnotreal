@@ -23,6 +23,9 @@ Highlights:
 - **Fast & self-contained** — plain HTML/CSS/JS, no framework, no build step; respects
   `prefers-reduced-motion`; installable (web manifest + full icon set); SEO basics
   (sitemap, canonical, social share card).
+- **AEO-friendly** — a few lightweight touches for answer engines and AI crawlers: Content
+  Signals declared in `robots.txt` and a `text/markdown` representation served via content
+  negotiation, so agents can read a clean version of the page.
 
 *It's satire. The sky is, in fact, probably real. Please look up responsibly.*
 
@@ -72,9 +75,6 @@ npm run deploy     # = wrangler deploy
 
 ## Roadmap
 
-- **Ads:** a reserved, hidden `.ad-slot` sits in the footer of `index.html`. Drop an AdSense
-  (or house-ad) unit in there once the site is approved/live. (Needs a privacy policy +
-  cookie consent first.)
 - **Live counters / email capture:** the Worker's `/api/*` namespace is free for future
   dynamic bits — a live "skies scanned" counter, a newsletter signup, etc. (would use
   Cloudflare KV/D1).
