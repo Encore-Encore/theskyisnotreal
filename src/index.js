@@ -41,6 +41,30 @@ export default {
       );
     }
 
+    // Scan beacon: POST /api/scan records a user-initiated sky scan with its
+    // Cloudflare edge geo (no PII). Fire-and-forget from the client.
+    if (url.pathname === "/api/scan") {
+      return handleScan(request, env);
+    }
+
+    // Admin analytics snapshot. Both the HTML dashboard (/admin) and its JSON
+    // (/api/admin/stats) are gated by Cloudflare Access: the edge requires login
+    // before the request arrives, and we ALSO verify the Access JWT here so the
+    // route fails closed if the Access application is ever misconfigured or the
+    // Worker is reached directly (e.g. via workers.dev).
+    if (url.pathname === "/admin" || url.pathname === "/api/admin/stats") {
+      const gate = await requireAccess(request, env);
+      if (!gate.ok) return gate.response;
+      const stats = await getStats(env);
+      const headers = { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" };
+      if (url.pathname === "/api/admin/stats") {
+        return Response.json(stats, { headers });
+      }
+      return new Response(renderAdmin(stats), {
+        headers: { ...headers, "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+
     // Reserved namespace for future dynamic endpoints. Returns 404 for now so
     // nothing accidentally falls through to a static asset.
     if (url.pathname.startsWith("/api/")) {
@@ -552,4 +576,278 @@ async function handleSubscribe(request, env) {
   }
 
   return Response.json({ ok: true });
+}
+
+// ---------------------------------------------------------------- scan beacon
+
+/**
+ * POST /api/scan — records a single user-initiated scan with the visitor's
+ * Cloudflare edge geo (coarse city/region/country, no IP, no other PII). The
+ * client fires this fire-and-forget (navigator.sendBeacon) only for scans the
+ * user actually runs — reproducing a shared /s/<id> permalink does NOT beacon.
+ * Returns 204 (beacons ignore the body); failures never surface to the user.
+ */
+async function handleScan(request, env) {
+  if (request.method !== "POST") {
+    return Response.json(
+      { error: "method_not_allowed" },
+      { status: 405, headers: { Allow: "POST" } }
+    );
+  }
+  const cf = request.cf || {};
+  try {
+    await env.DB.prepare(
+      "INSERT INTO scans (country, region, city) VALUES (?, ?, ?)"
+    )
+      .bind(cf.country || null, cf.region || null, cf.city || null)
+      .run();
+  } catch (e) {
+    return Response.json({ error: "server_error" }, { status: 500 });
+  }
+  return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+}
+
+// ---------------------------------------------------------------- admin: access gate
+
+/**
+ * Cloudflare Access gate. In production the Access edge already requires login
+ * before the request reaches the Worker; this is defense-in-depth so the route
+ * fails CLOSED if Access is misconfigured or the Worker is hit directly. Reads
+ * the Access JWT (header or CF_Authorization cookie) and verifies it against the
+ * team's public keys. Returns { ok } or { ok:false, response }.
+ */
+async function requireAccess(request, env) {
+  if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) {
+    // Not configured yet — never expose PII by default.
+    return {
+      ok: false,
+      response: Response.json({ error: "admin_not_configured" }, { status: 503 }),
+    };
+  }
+  const token = getAccessToken(request);
+  if (!token) {
+    return { ok: false, response: new Response("Unauthorized", { status: 401 }) };
+  }
+  const result = await verifyAccessJwt(token, env);
+  if (!result.ok) {
+    return { ok: false, response: new Response("Forbidden", { status: 403 }) };
+  }
+  return { ok: true, identity: result.payload };
+}
+
+/** Access presents its JWT as a request header and/or the CF_Authorization cookie. */
+function getAccessToken(request) {
+  const header = request.headers.get("Cf-Access-Jwt-Assertion");
+  if (header) return header;
+  const cookie = request.headers.get("Cookie") || "";
+  const m = cookie.match(/(?:^|;\s*)CF_Authorization=([^;]+)/);
+  return m ? m[1] : null;
+}
+
+// Cache the team's signing keys in module scope (short TTL). Access rotates keys,
+// so we re-fetch hourly rather than pinning.
+let accessKeysCache = { keys: null, exp: 0 };
+
+async function getAccessKeys(teamDomain) {
+  const now = Date.now();
+  if (accessKeysCache.keys && now < accessKeysCache.exp) return accessKeysCache.keys;
+  const resp = await fetch(`${teamDomain}/cdn-cgi/access/certs`);
+  if (!resp.ok) throw new Error(`access certs fetch failed: ${resp.status}`);
+  const { keys } = await resp.json();
+  accessKeysCache = { keys: keys || [], exp: now + 3600_000 };
+  return accessKeysCache.keys;
+}
+
+function b64urlToBytes(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = s.length % 4 ? 4 - (s.length % 4) : 0;
+  const bin = atob(s + "=".repeat(pad));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/**
+ * Verify a Cloudflare Access RS256 JWT: signature (against the team JWKS), then
+ * the standard claims — expiry/not-before, issuer (the team domain), and that
+ * the token's audience includes this application's AUD tag.
+ */
+async function verifyAccessJwt(token, env) {
+  const parts = token.split(".");
+  if (parts.length !== 3) return { ok: false };
+  const [headerB64, payloadB64, sigB64] = parts;
+
+  let header, payload;
+  try {
+    header = JSON.parse(new TextDecoder().decode(b64urlToBytes(headerB64)));
+    payload = JSON.parse(new TextDecoder().decode(b64urlToBytes(payloadB64)));
+  } catch (e) {
+    return { ok: false };
+  }
+  if (header.alg !== "RS256" || !header.kid) return { ok: false };
+
+  let keys;
+  try {
+    keys = await getAccessKeys(env.ACCESS_TEAM_DOMAIN);
+  } catch (e) {
+    return { ok: false };
+  }
+  const jwk = keys.find((k) => k.kid === header.kid);
+  if (!jwk) return { ok: false };
+
+  let valid = false;
+  try {
+    const key = await crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+    valid = await crypto.subtle.verify(
+      "RSASSA-PKCS1-v1_5",
+      key,
+      b64urlToBytes(sigB64),
+      new TextEncoder().encode(`${headerB64}.${payloadB64}`)
+    );
+  } catch (e) {
+    return { ok: false };
+  }
+  if (!valid) return { ok: false };
+
+  const now = Math.floor(Date.now() / 1000);
+  if (typeof payload.exp === "number" && now >= payload.exp) return { ok: false };
+  if (typeof payload.nbf === "number" && now < payload.nbf) return { ok: false };
+  if (payload.iss !== env.ACCESS_TEAM_DOMAIN) return { ok: false };
+  const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+  if (!auds.includes(env.ACCESS_AUD)) return { ok: false };
+
+  return { ok: true, payload };
+}
+
+// ---------------------------------------------------------------- admin: stats + view
+
+/**
+ * The analytics snapshot: total signups, total scans, the 10 most recent
+ * signups, and scan counts grouped by country and by city. Human-visitor counts
+ * live in Cloudflare Web Analytics (bots/prefetch make self-counting unreliable),
+ * so they're intentionally not synthesized here — the dashboard links out to them.
+ */
+async function getStats(env) {
+  const one = async (sql) => (await env.DB.prepare(sql).first("n")) || 0;
+  const many = async (sql) => (await env.DB.prepare(sql).all()).results || [];
+
+  const [subscribers, scans, recent, byCountry, byCity] = await Promise.all([
+    one("SELECT COUNT(*) AS n FROM subscribers"),
+    one("SELECT COUNT(*) AS n FROM scans"),
+    many("SELECT email, created_at FROM subscribers ORDER BY id DESC LIMIT 10"),
+    many(
+      "SELECT COALESCE(country, '??') AS country, COUNT(*) AS n " +
+        "FROM scans GROUP BY country ORDER BY n DESC LIMIT 25"
+    ),
+    many(
+      "SELECT COALESCE(city, 'Unknown') AS city, COALESCE(region, '') AS region, " +
+        "COALESCE(country, '??') AS country, COUNT(*) AS n " +
+        "FROM scans GROUP BY city, region, country ORDER BY n DESC LIMIT 25"
+    ),
+  ]);
+
+  return {
+    subscribers,
+    scans,
+    recentSubscribers: recent,
+    scansByCountry: byCountry,
+    scansByCity: byCity,
+  };
+}
+
+/** Minimal, self-contained HTML for the admin snapshot. No external assets. */
+function renderAdmin(stats) {
+  const esc = (s) =>
+    String(s).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    })[c]);
+
+  const emailRows = stats.recentSubscribers.length
+    ? stats.recentSubscribers
+        .map(
+          (r) =>
+            `<tr><td>${esc(r.email)}</td><td class="muted">${esc(r.created_at)}</td></tr>`
+        )
+        .join("")
+    : `<tr><td colspan="2" class="muted">No signups yet.</td></tr>`;
+
+  const countryRows = stats.scansByCountry.length
+    ? stats.scansByCountry
+        .map((r) => `<tr><td>${esc(r.country)}</td><td>${esc(r.n)}</td></tr>`)
+        .join("")
+    : `<tr><td colspan="2" class="muted">No scans yet.</td></tr>`;
+
+  const cityRows = stats.scansByCity.length
+    ? stats.scansByCity
+        .map((r) => {
+          const place = [r.city, r.region].filter(Boolean).join(", ") || r.city;
+          return `<tr><td>${esc(place)}</td><td>${esc(r.country)}</td><td>${esc(r.n)}</td></tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="3" class="muted">No scans yet.</td></tr>`;
+
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Admin snapshot · the sky is not real</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 32px 20px; background: #05060a; color: #e8ecf5;
+         font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #8b93a7; margin: 0 0 28px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+           gap: 14px; margin-bottom: 32px; }
+  .card { background: #0d1018; border: 1px solid #1c2130; border-radius: 12px; padding: 18px 20px; }
+  .card .n { font-size: 30px; font-weight: 700; }
+  .card .l { color: #8b93a7; font-size: 13px; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: #9aa3ba;
+       margin: 28px 0 10px; }
+  table { width: 100%; border-collapse: collapse; background: #0d1018;
+          border: 1px solid #1c2130; border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid #161b28; }
+  th { color: #8b93a7; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  tr:last-child td { border-bottom: 0; }
+  td:last-child, th:last-child { text-align: right; }
+  .muted { color: #6a7285; }
+  .note { margin-top: 28px; color: #6a7285; font-size: 13px; }
+  a { color: #6ea8fe; }
+</style></head>
+<body><main>
+  <h1>Analytics snapshot</h1>
+  <p class="sub">the sky is not real · admin</p>
+
+  <div class="cards">
+    <div class="card"><div class="n">${esc(stats.subscribers)}</div><div class="l">email signups</div></div>
+    <div class="card"><div class="n">${esc(stats.scans)}</div><div class="l">scans run</div></div>
+  </div>
+
+  <h2>Last 10 signups</h2>
+  <table><thead><tr><th>Email</th><th>Signed up (UTC)</th></tr></thead>
+  <tbody>${emailRows}</tbody></table>
+
+  <h2>Scans by country</h2>
+  <table><thead><tr><th>Country</th><th>Scans</th></tr></thead>
+  <tbody>${countryRows}</tbody></table>
+
+  <h2>Scans by city</h2>
+  <table><thead><tr><th>City</th><th>Country</th><th>Scans</th></tr></thead>
+  <tbody>${cityRows}</tbody></table>
+
+  <p class="note">Human-visitor counts live in
+    <a href="https://dash.cloudflare.com/?to=/:account/web-analytics" target="_blank" rel="noopener">Cloudflare Web Analytics</a>
+    — bot and prefetch traffic make server-side visitor counting unreliable, so it's tracked there.</p>
+</main></body></html>`;
 }
