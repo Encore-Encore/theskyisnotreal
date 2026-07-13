@@ -39,10 +39,10 @@
   //   ACCESS_AUD         — the Application Audience (AUD) tag from that Access app
   // Until BOTH are set, /admin and /api/admin/stats fail closed (HTTP 503), so the
   // subscriber PII is never exposed by default.
-  // "vars": {
-  //   "ACCESS_TEAM_DOMAIN": "https://YOURTEAM.cloudflareaccess.com",
-  //   "ACCESS_AUD": "your-access-application-aud-tag"
-  // },
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "https://ankraggrwl.cloudflareaccess.com",
+    "ACCESS_AUD": "b20c60e02dd799de9360ce379f87efc9ffd8e053467acdc63ac007214539a219"
+  },
   "observability": {
     "enabled": true
   }
