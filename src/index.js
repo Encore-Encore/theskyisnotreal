@@ -200,7 +200,7 @@ function agentCard(url) {
 
 /**
  * API catalog (RFC 9727) as a linkset (RFC 9264). Indexes the site's agent-
- * facing API — the A2A endpoint — and links its machine-readable description
+ * facing API, the A2A endpoint, and links its machine-readable description
  * (the Agent Card). Served as application/linkset+json.
  */
 function apiCatalog(url) {
@@ -241,7 +241,7 @@ const AGENT_LINK_HEADER = [
   '</.well-known/agent-card.json>; rel="service-desc"; type="application/json"',
 ].join(", ");
 
-/** JSON-RPC 2.0 error response (HTTP 200 — the transport succeeded). */
+/** JSON-RPC 2.0 error response (HTTP 200, the transport succeeded). */
 function rpcError(id, code, message) {
   return Response.json(
     { jsonrpc: "2.0", id: id ?? null, error: { code, message } },
@@ -302,7 +302,7 @@ async function handleA2A(request, url) {
     case "message/stream":
       return rpcError(id, -32601, "Streaming is not supported by this agent");
     case "tasks/get":
-      // Stateless agent — no tasks are ever persisted.
+      // Stateless agent, no tasks are ever persisted.
       return rpcError(id, -32001, "Task not found");
     default:
       return rpcError(id, -32601, "Method not found");
@@ -620,10 +620,10 @@ async function handleSubscribe(request, env) {
 // ---------------------------------------------------------------- scan beacon
 
 /**
- * POST /api/scan — records a single user-initiated scan with the visitor's
+ * POST /api/scan, records a single user-initiated scan with the visitor's
  * Cloudflare edge geo (coarse city/region/country, no IP, no other PII). The
  * client fires this fire-and-forget (navigator.sendBeacon) only for scans the
- * user actually runs — reproducing a shared /s/<id> permalink does NOT beacon.
+ * user actually runs, reproducing a shared /s/<id> permalink does NOT beacon.
  * Returns 204 (beacons ignore the body); failures never surface to the user.
  */
 async function handleScan(request, env) {
@@ -657,7 +657,7 @@ async function handleScan(request, env) {
  */
 async function requireAccess(request, env) {
   if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) {
-    // Not configured yet — never expose PII by default.
+    // Not configured yet, never expose PII by default.
     return {
       ok: false,
       response: Response.json({ error: "admin_not_configured" }, { status: 503 }),
@@ -708,7 +708,7 @@ function b64urlToBytes(s) {
 
 /**
  * Verify a Cloudflare Access RS256 JWT: signature (against the team JWKS), then
- * the standard claims — expiry/not-before, issuer (the team domain), and that
+ * the standard claims, expiry/not-before, issuer (the team domain), and that
  * the token's audience includes this application's AUD tag.
  */
 async function verifyAccessJwt(token, env) {
@@ -770,7 +770,7 @@ async function verifyAccessJwt(token, env) {
  * The analytics snapshot: total signups, total scans, the 10 most recent
  * signups, and scan counts grouped by country and by city. Human-visitor counts
  * live in Cloudflare Web Analytics (bots/prefetch make self-counting unreliable),
- * so they're intentionally not synthesized here — the dashboard links out to them.
+ * so they're intentionally not synthesized here, the dashboard links out to them.
  */
 async function getStats(env) {
   const one = async (sql) => (await env.DB.prepare(sql).first("n")) || 0;
