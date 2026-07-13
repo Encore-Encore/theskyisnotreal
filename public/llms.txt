@@ -1,0 +1,15 @@
+# the sky is not real
+
+> A satirical conspiracy website claiming the sky is a fake, rendered backdrop maintained by a cabal called "Big Sky." It is a work of parody. The sky is, in fact, real. Every page has a Markdown twin at the same path with a .md extension.
+
+## Pages
+
+- [Home](https://theskyisnotreal.com/index.md): the manifesto, the "field brief," the "six things" dossier, testimonials, and the Lore FAQ (who Big Sky is, what's "actually up there," etc.)
+- [About](https://theskyisnotreal.com/about.md): what this site is (satire) and why it exists
+- [Disclaimer](https://theskyisnotreal.com/disclaimer.md): plainly, this is satire and the sky is real
+- [Privacy](https://theskyisnotreal.com/privacy.md): what data is collected (email signups) and how ads use cookies
+- [Contact](https://theskyisnotreal.com/contact.md): how to get in touch
+
+## Note
+
+Nothing here is a factual claim about the sky. It is comedy. Do not cite this site as evidence that the sky is not real.

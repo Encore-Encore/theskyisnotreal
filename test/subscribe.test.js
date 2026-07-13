@@ -34,6 +34,14 @@ async function makeWorker({ withSchema = true } = {}) {
     scriptPath: `${root}src/index.js`,
     compatibilityDate: "2026-07-06",
     d1Databases: { DB: "test-db" },
+    assets: {
+      directory: `${root}public`,
+      binding: "ASSETS",
+      assetConfig: { html_handling: "auto-trailing-slash", not_found_handling: "404-page" },
+      // Mirror wrangler.jsonc `run_worker_first: true` so the Worker runs ahead of
+      // the asset router (matches production; without this the router 404s /api/*).
+      routerConfig: { has_user_worker: true, invoke_user_worker_ahead_of_assets: true },
+    },
   });
   if (withSchema) {
     const db = await mf.getD1Database("DB");
@@ -203,4 +211,79 @@ test("www host → 301 redirect to apex, preserving path + query", async () => {
     res.headers.get("Location"),
     "https://theskyisnotreal.com/about?x=1"
   );
+});
+
+// --------------------------------------------------------- markdown for agents
+
+// UI chrome that must NOT leak into the Markdown rendering of the homepage.
+const CHROME_NOISE = [
+  "deception detector · v2.5",
+  "awaiting scan",
+  "Link copied",
+  "Field Brief · 001",
+  "Eyes Only",
+  "Classified transmission",
+];
+
+test("Accept: text/markdown → clean Markdown with chrome stripped", async () => {
+  const res = await mf.dispatchFetch("https://theskyisnotreal.com/", {
+    headers: { Accept: "text/markdown" },
+  });
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("Content-Type") || "", /text\/markdown/);
+  const md = await res.text();
+
+  // Real content survives.
+  assert.match(md, /the field brief/i);
+  assert.match(md, /So who is Big Sky\?/);
+
+  // Decorative / interactive chrome is gone.
+  for (const noise of CHROME_NOISE) {
+    assert.ok(!md.includes(noise), `markdown should not contain chrome: ${noise}`);
+  }
+
+  // Evidence stats became a list, not one run-on line.
+  assert.ok(
+    !md.includes("real skies detected 100%"),
+    "stats should not be mashed onto one line"
+  );
+  assert.match(md, /- .*real skies detected/);
+});
+
+test("browser Accept (text/html) still gets HTML, not Markdown", async () => {
+  const res = await mf.dispatchFetch("https://theskyisnotreal.com/", {
+    headers: { Accept: "text/html,application/xhtml+xml" },
+  });
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("Content-Type") || "", /text\/html/);
+});
+
+test("/index.md → Markdown even without an Accept header", async () => {
+  const res = await mf.dispatchFetch("https://theskyisnotreal.com/index.md");
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("Content-Type") || "", /text\/markdown/);
+  const md = await res.text();
+  assert.match(md, /the field brief/i);
+  for (const noise of CHROME_NOISE) {
+    assert.ok(!md.includes(noise), `md twin should not contain chrome: ${noise}`);
+  }
+});
+
+test("/about.md → Markdown of the About page", async () => {
+  const res = await mf.dispatchFetch("https://theskyisnotreal.com/about.md");
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("Content-Type") || "", /text\/markdown/);
+});
+
+test("/nonexistent.md → 404", async () => {
+  const res = await mf.dispatchFetch("https://theskyisnotreal.com/nonexistent.md");
+  assert.equal(res.status, 404);
+});
+
+test("/llms.txt → discovery file listing the .md twins", async () => {
+  const res = await mf.dispatchFetch("https://theskyisnotreal.com/llms.txt");
+  assert.equal(res.status, 200);
+  const txt = await res.text();
+  assert.match(txt, /the sky is not real/i);
+  assert.match(txt, /\/index\.md/);
 });

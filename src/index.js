@@ -92,6 +92,36 @@ export default {
       return apiCatalog(url);
     }
 
+    // Markdown twins for agents/tools: /<page>.md returns the Markdown rendering
+    // of /<page>, forced (no Accept negotiation needed). /index.md is the home
+    // page. These are listed in /llms.txt so agents can discover them.
+    if (url.pathname.endsWith(".md")) {
+      const base = url.pathname === "/index.md" ? "/" : url.pathname.slice(0, -3);
+      const ct = (r) => r.headers.get("Content-Type") || "";
+      let htmlRes = await env.ASSETS.fetch(new Request(new URL(base, url)));
+      if (htmlRes.status !== 200 || !ct(htmlRes).includes("text/html")) {
+        htmlRes = await env.ASSETS.fetch(new Request(new URL(base + ".html", url)));
+      }
+      if (htmlRes.status !== 200 || !ct(htmlRes).includes("text/html")) {
+        return new Response("Not found\n", {
+          status: 404,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+      const html = await htmlRes.text();
+      const md = await htmlToMarkdown(html, new URL(base, url));
+      return new Response(md.markdown, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/markdown; charset=utf-8",
+          "Cache-Control": "public, max-age=0, must-revalidate",
+          Link: AGENT_LINK_HEADER,
+          "x-markdown-tokens": String(md.tokens),
+          "x-original-tokens": String(md.originalTokens),
+        },
+      });
+    }
+
     // Shareable scan permalinks: /s/<id> serves the homepage (no redirect); the
     // client reads the id and reproduces that scan. noindex so search engines
     // don't index infinite variants (canonical already points to "/").
@@ -416,8 +446,9 @@ function safeCodePoint(n) {
 
 /**
  * Convert an HTML page to Markdown at the edge using HTMLRewriter (streaming,
- * zero-dependency). Non-content chrome (scripts, styles, ads, the surveillance
- * pill, the starfield canvas) is dropped; headings, paragraphs, emphasis, lists,
+ * zero-dependency). Non-content chrome (scripts, styles, ads, the status pill,
+ * section kickers, the interactive detector UI, the starfield canvas) is dropped;
+ * headings, paragraphs, emphasis, lists,
  * blockquotes and links are mapped to their Markdown equivalents. The document
  * <title> and meta description become YAML frontmatter.
  *
@@ -441,7 +472,12 @@ async function htmlToMarkdown(html, pageUrl) {
 
   const drop =
     "script, style, noscript, template, link, meta, canvas, svg, iframe, ins," +
-    " .ad-slot, aside[aria-label='Advertisement'], .watcher, .vignette";
+    " .ad-slot, aside[aria-label='Advertisement'], .watcher, .vignette," +
+    // Decorative / interactive chrome: eyebrow + section kickers, the hero anchor
+    // buttons, the whole interactive detector UI, card index numbers, and the
+    // field-brief header stamp. Their text is not content and only adds noise.
+    " .eyebrow, .section-kicker, .hero__actions, .scanner__panel," +
+    " .scanner__controls, .card__index, .brief__head";
 
   const transformed = new HTMLRewriter()
     // Frontmatter sources, read before the generic `meta`/`title` drop rules run.
@@ -465,6 +501,9 @@ async function htmlToMarkdown(html, pageUrl) {
     .on("p", wrap(BR, BR))
     .on("blockquote", wrap(BR + "> ", BR))
     .on("summary", wrap(BR + "**", "**" + BR)) // <details> question → bold line
+    .on(".brief__label", wrap(BR + "**", "**" + BR)) // brief label → bold line
+    .on(".stats", wrap(BR, BR)) // evidence grid → its own block
+    .on(".stat", { element(el) { el.before(NL + "- "); el.removeAndKeepContent(); } }) // stat → list item
     .on("ul", wrap(BR, BR))
     .on("ol", wrap(BR, BR))
     .on("li", { element(el) { el.before(NL + "- "); el.removeAndKeepContent(); } })
