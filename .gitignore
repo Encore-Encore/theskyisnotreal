@@ -6,5 +6,6 @@ dist/
 .DS_Store
 .env
 
-# editor/preview config
-.claude/
+# editor/preview config: keep local, but share committed subagents
+.claude/*
+!.claude/agents/
