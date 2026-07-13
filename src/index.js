@@ -736,52 +736,27 @@ async function verifyAccessJwt(token, env) {
 async function getStats(env) {
   const one = async (sql) => (await env.DB.prepare(sql).first("n")) || 0;
   const many = async (sql) => (await env.DB.prepare(sql).all()).results || [];
-  // Counts within a rolling window (created_at is UTC text from datetime('now')).
-  const since = (table, window) =>
-    one(
-      `SELECT COUNT(*) AS n FROM ${table} WHERE created_at >= datetime('now', '${window}')`
-    );
 
-  const [
-    subscribers,
-    scans,
-    subs1d,
-    subs7d,
-    subs30d,
-    scans1d,
-    scans7d,
-    scans30d,
-    recent,
-    byCountry,
-    byCity,
-    generatedAt,
-  ] = await Promise.all([
-    one("SELECT COUNT(*) AS n FROM subscribers"),
-    one("SELECT COUNT(*) AS n FROM scans"),
-    since("subscribers", "-1 day"),
-    since("subscribers", "-7 days"),
-    since("subscribers", "-30 days"),
-    since("scans", "-1 day"),
-    since("scans", "-7 days"),
-    since("scans", "-30 days"),
-    many("SELECT email, created_at FROM subscribers ORDER BY id DESC LIMIT 10"),
-    many(
-      "SELECT COALESCE(country, '??') AS country, COUNT(*) AS n " +
-        "FROM scans GROUP BY country ORDER BY n DESC LIMIT 25"
-    ),
-    many(
-      "SELECT COALESCE(city, 'Unknown') AS city, COALESCE(region, '') AS region, " +
-        "COALESCE(country, '??') AS country, COUNT(*) AS n " +
-        "FROM scans GROUP BY city, region, country ORDER BY n DESC LIMIT 25"
-    ),
-    one("SELECT datetime('now') AS n"),
-  ]);
+  const [subscribers, scans, recent, byCountry, byCity, generatedAt] =
+    await Promise.all([
+      one("SELECT COUNT(*) AS n FROM subscribers"),
+      one("SELECT COUNT(*) AS n FROM scans"),
+      many("SELECT email, created_at FROM subscribers ORDER BY id DESC LIMIT 10"),
+      many(
+        "SELECT COALESCE(country, '??') AS country, COUNT(*) AS n " +
+          "FROM scans GROUP BY country ORDER BY n DESC LIMIT 25"
+      ),
+      many(
+        "SELECT COALESCE(city, 'Unknown') AS city, COALESCE(region, '') AS region, " +
+          "COALESCE(country, '??') AS country, COUNT(*) AS n " +
+          "FROM scans GROUP BY city, region, country ORDER BY n DESC LIMIT 25"
+      ),
+      one("SELECT datetime('now') AS n"),
+    ]);
 
   return {
     subscribers,
     scans,
-    subscribersWindow: { d1: subs1d, d7: subs7d, d30: subs30d },
-    scansWindow: { d1: scans1d, d7: scans7d, d30: scans30d },
     recentSubscribers: recent,
     scansByCountry: byCountry,
     scansByCity: byCity,
@@ -824,9 +799,6 @@ function renderAdmin(stats) {
         .join("")
     : `<tr><td colspan="3" class="muted">No scans yet.</td></tr>`;
 
-  const win = (w) =>
-    `<div class="win">+${esc(w.d1)} · +${esc(w.d7)} · +${esc(w.d30)} <span>24h / 7d / 30d</span></div>`;
-
   // One-click links to the external consoles this site depends on. These open the
   // provider dashboards directly (the admin page itself is already behind Access).
   const CF_ACCOUNT = "fe2b858cf26189abb6c1205983b1d012";
@@ -839,6 +811,7 @@ function renderAdmin(stats) {
     ["Cloudflare · Worker", `https://dash.cloudflare.com/${CF_ACCOUNT}/workers/services/view/theskyisnotreal/production`],
     ["Cloudflare · D1", `https://dash.cloudflare.com/${CF_ACCOUNT}/workers/d1/databases/${CF_D1}`],
     ["Cloudflare · Web Analytics", "https://dash.cloudflare.com/?to=/:account/web-analytics"],
+    ["GitHub repo", "https://github.com/Encore-Encore/theskyisnotreal"],
   ];
   const consoleLinks = consoles
     .map(
@@ -864,8 +837,6 @@ function renderAdmin(stats) {
   .card { background: #0d1018; border: 1px solid #1c2130; border-radius: 12px; padding: 18px 20px; }
   .card .n { font-size: 30px; font-weight: 700; }
   .card .l { color: #8b93a7; font-size: 13px; }
-  .card .win { margin-top: 8px; font-size: 12px; color: #7f8aa3; }
-  .card .win span { color: #565f75; }
   h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: #9aa3ba;
        margin: 28px 0 10px; }
   .links { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -887,8 +858,8 @@ function renderAdmin(stats) {
   <p class="sub">the sky is not real · admin</p>
 
   <div class="cards">
-    <div class="card"><div class="n">${esc(stats.subscribers)}</div><div class="l">email signups</div>${win(stats.subscribersWindow)}</div>
-    <div class="card"><div class="n">${esc(stats.scans)}</div><div class="l">scans run</div>${win(stats.scansWindow)}</div>
+    <div class="card"><div class="n">${esc(stats.subscribers)}</div><div class="l">email signups</div></div>
+    <div class="card"><div class="n">${esc(stats.scans)}</div><div class="l">scans run</div></div>
   </div>
 
   <h2>Consoles</h2>
@@ -906,9 +877,6 @@ function renderAdmin(stats) {
   <table><thead><tr><th>City</th><th>Country</th><th>Scans</th></tr></thead>
   <tbody>${cityRows}</tbody></table>
 
-  <p class="note">Human-visitor counts live in
-    <a href="https://dash.cloudflare.com/?to=/:account/web-analytics" target="_blank" rel="noopener">Cloudflare Web Analytics</a>
-    — bot and prefetch traffic make server-side visitor counting unreliable, so it's tracked there.</p>
   <p class="note">Snapshot generated ${esc(stats.generatedAt)} UTC.</p>
 </main></body></html>`;
 }
