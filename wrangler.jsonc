@@ -31,6 +31,18 @@
       "database_id": "14e337e8-88d8-40a5-bd7a-d0248511ace2"
     }
   ],
+  // Cloudflare Access gate for the /admin snapshot + /api/admin/stats. These are
+  // NOT secrets (the AUD tag and team domain are safe to commit), but they are
+  // deployment-specific, so fill them in after creating a self-hosted Access
+  // application that covers theskyisnotreal.com/admin and /api/admin/stats:
+  //   ACCESS_TEAM_DOMAIN — your team domain, e.g. https://YOURTEAM.cloudflareaccess.com
+  //   ACCESS_AUD         — the Application Audience (AUD) tag from that Access app
+  // Until BOTH are set, /admin and /api/admin/stats fail closed (HTTP 503), so the
+  // subscriber PII is never exposed by default.
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "https://ankraggrwl.cloudflareaccess.com",
+    "ACCESS_AUD": "b20c60e02dd799de9360ce379f87efc9ffd8e053467acdc63ac007214539a219"
+  },
   "observability": {
     "enabled": true
   }

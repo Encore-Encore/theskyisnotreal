@@ -377,10 +377,22 @@
   var busy = false;
   btn.addEventListener("click", function () { runScan(false); });
 
+  // Fire-and-forget beacon so the Worker can count a scan + its edge geo. Wrapped
+  // so a blocked/failed beacon can never break the scan itself.
+  function reportScan() {
+    try {
+      if (navigator.sendBeacon) navigator.sendBeacon("/api/scan");
+      else fetch("/api/scan", { method: "POST", keepalive: true }).catch(function () {});
+    } catch (e) { /* analytics is best-effort */ }
+  }
+
   function runScan(instant, seed) {
     if (busy) return;
     loadLand(); // ensure the map is loading even if the scan beat the scroll-in
     busy = true;
+    // Count only user-initiated scans, not shared /s/<id> permalink replays (those
+    // arrive with a seed already set).
+    if (!seed) reportScan();
     if (!seed) seed = Math.floor(Math.random() * Math.pow(36, 5)).toString(36);
     currentSeed = seed;
     rng = seedRng(seed);
