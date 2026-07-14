@@ -1084,12 +1084,12 @@ async function getStats(env) {
       one("SELECT COUNT(*) AS n FROM scans"),
       many("SELECT email, created_at FROM subscribers ORDER BY id DESC LIMIT 10"),
       many(
-        "SELECT COALESCE(country, '??') AS country, COUNT(*) AS n " +
+        "SELECT COALESCE(country, '??') AS country, COUNT(*) AS n, MAX(created_at) AS last " +
           "FROM scans GROUP BY country ORDER BY n DESC LIMIT 25"
       ),
       many(
         "SELECT COALESCE(city, 'Unknown') AS city, COALESCE(region, '') AS region, " +
-          "COALESCE(country, '??') AS country, COUNT(*) AS n " +
+          "COALESCE(country, '??') AS country, COUNT(*) AS n, MAX(created_at) AS last " +
           "FROM scans GROUP BY city, region, country ORDER BY n DESC LIMIT 25"
       ),
       one("SELECT datetime('now') AS n"),
@@ -1127,18 +1127,21 @@ function renderAdmin(stats) {
 
   const countryRows = stats.scansByCountry.length
     ? stats.scansByCountry
-        .map((r) => `<tr><td>${esc(r.country)}</td><td>${esc(r.n)}</td></tr>`)
+        .map(
+          (r) =>
+            `<tr><td>${esc(r.country)}</td><td>${esc(r.n)}</td><td class="muted">${esc(r.last || "")}</td></tr>`
+        )
         .join("")
-    : `<tr><td colspan="2" class="muted">No scans yet.</td></tr>`;
+    : `<tr><td colspan="3" class="muted">No scans yet.</td></tr>`;
 
   const cityRows = stats.scansByCity.length
     ? stats.scansByCity
         .map((r) => {
           const place = [r.city, r.region].filter(Boolean).join(", ") || r.city;
-          return `<tr><td>${esc(place)}</td><td>${esc(r.country)}</td><td>${esc(r.n)}</td></tr>`;
+          return `<tr><td>${esc(place)}</td><td>${esc(r.country)}</td><td>${esc(r.n)}</td><td class="muted">${esc(r.last || "")}</td></tr>`;
         })
         .join("")
-    : `<tr><td colspan="3" class="muted">No scans yet.</td></tr>`;
+    : `<tr><td colspan="4" class="muted">No scans yet.</td></tr>`;
 
   // One-click links to the external consoles this site depends on. These open the
   // provider dashboards directly (the admin page itself is already behind Access).
@@ -1211,11 +1214,11 @@ function renderAdmin(stats) {
   <tbody>${emailRows}</tbody></table>
 
   <h2>Scans by country</h2>
-  <table><thead><tr><th>Country</th><th>Scans</th></tr></thead>
+  <table><thead><tr><th>Country</th><th>Scans</th><th>Last scan (UTC)</th></tr></thead>
   <tbody>${countryRows}</tbody></table>
 
   <h2>Scans by city</h2>
-  <table><thead><tr><th>City</th><th>Country</th><th>Scans</th></tr></thead>
+  <table><thead><tr><th>City</th><th>Country</th><th>Scans</th><th>Last scan (UTC)</th></tr></thead>
   <tbody>${cityRows}</tbody></table>
 
   <p class="note">Snapshot generated ${esc(stats.generatedAt)} UTC.</p>
