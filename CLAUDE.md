@@ -14,6 +14,8 @@ must stay unmistakably a joke.
 npm run dev                         # wrangler dev (build.js runs first automatically)
 npm test                            # node:test + Miniflare, exercises the REAL Worker
 node --test test/subscribe.test.js  # one test file
+npm run e2e                         # Playwright user-story tests (starts its own wrangler dev)
+npm run e2e:smoke                   # read-only @smoke subset; set BASE_URL for prod
 npm run build                       # build.js: public/ -> dist/ with hashed /assets/
 npm run deploy                      # manual deploy; normally unneeded (see Deploys)
 ```
@@ -48,6 +50,9 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
 - **page-consistency**: when a page is added, removed, or its head/footer nav
   changes, keep the discovery surfaces in sync (`sitemap.xml`, `llms.txt`, footer
   nav, per-page canonical/description/OG). Enforces the "Adding a page" checklist.
+- **site-tester**: runs the browser-level user-story tests (the `test-site` skill /
+  `npm run e2e`) and reports pass/fail per story. Invoke after a change is merged or
+  deployed, or to verify the site works end to end.
 
 ## Architecture
 
@@ -115,6 +120,15 @@ Every test file imports `WORKER_SCRIPT` / `MODULE_RULES` / `ensureBundle` from t
 harness. The per-scan verdict lives in `shared/scan-core.mjs` (imported by the Worker,
 mirrored by `public/script.js`); `test/scan-core.test.js` guards that they stay in
 sync.
+
+Browser-level user stories are covered separately by Playwright (`e2e/`, run with
+`npm run e2e`), which drives a real Chromium against a local `wrangler dev`: homepage,
+run-a-scan, shared `/s/<id>` reproduce + OG image, trust pages, signup, admin gating,
+404. `reducedMotion: reduce` keeps scans deterministic (instant, no fake-out). Tests
+tagged `@smoke` are read-only (no D1 writes) and also run against production. CI:
+`.github/workflows/e2e.yml` runs the full suite on PRs; `smoke.yml` runs the `@smoke`
+subset against live theskyisnotreal.com after each push to main (post-deploy check).
+The `test-site` skill and `site-tester` subagent run the same suite on demand.
 
 ## Deploys and data
 

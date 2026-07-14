@@ -6,6 +6,15 @@ dist/
 .DS_Store
 .env
 
-# editor/preview config: keep local, but share committed subagents
+# Playwright E2E artifacts (browsers live in ~/.cache, not here)
+test-results/
+playwright-report/
+blob-report/
+
+# editor/preview config: keep local, but share committed subagents + skills
 .claude/*
 !.claude/agents/
+!.claude/skills/
+
+# Local MCP server config (personal Cloudflare account via OAuth)
+.mcp.json
