@@ -66,7 +66,7 @@ function cardHtml(id, scan, logo) {
       <div style="display:flex;font-size:34px;font-weight:700;color:#cfd6e6;">the sky is not real</div>
       <div style="display:flex;align-items:center;border:2px solid rgba(77,214,255,0.4);border-radius:999px;padding:11px 24px;margin-left:auto;">
         <div style="display:flex;width:12px;height:12px;border-radius:999px;background:#4dd6ff;margin-right:12px;"></div>
-        <div style="display:flex;font-size:22px;font-weight:700;letter-spacing:3px;color:#8fe6ff;">DECEPTION DETECTOR · ARCHIVED</div>
+        <div style="display:flex;font-size:22px;font-weight:700;letter-spacing:3px;color:#8fe6ff;">DECEPTION DETECTOR</div>
       </div>
     </div>
 
