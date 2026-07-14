@@ -43,7 +43,10 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
 ## Subagents (use them)
 
 - **copy-guardian**: run every user-facing copy change through it (public/*.html,
-  scanner strings in `public/script.js`, meta/OG/title text, llms.txt).
+  scanner strings in `public/script.js`, meta/OG/title text, llms.txt, and the repo
+  docs `README.md` / `brand/README.md`). When a change adds or alters a user-facing
+  feature or the stack, update `README.md` (and this file) to match, then run
+  copy-guardian. Docs go stale silently; this is the checkpoint that keeps them honest.
 - **worker-reviewer**: review any `src/index.js` change before shipping (read-only).
 - **miniflare-test-writer**: add or update tests whenever a route changes; it knows
   the harness.
