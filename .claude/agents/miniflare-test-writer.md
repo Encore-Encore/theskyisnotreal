@@ -15,6 +15,12 @@ Cloudflare Worker. The tests run the REAL Worker (`src/index.js`) inside Minifla
 against an in-memory D1 database, so they exercise the actual routing, validation, and
 SQL. Match the existing style in `test/subscribe.test.js`.
 
+Scope: you own the request/response layer (status codes, headers, JSON shapes, D1 side
+effects, routing). Browser-level user stories (a real scan click, the share flow, the
+rendered OG image in a page) belong to the Playwright suite in `e2e/` and the
+`site-tester` subagent, not here. Add the Miniflare test for the API contract; leave the
+browser story to them.
+
 ## Harness facts (get these right)
 
 - Runtime: `node:test` (`test`, `before`, `after`, `beforeEach`) plus

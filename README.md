@@ -1,4 +1,10 @@
-# the sky is not real
+<div align="center">
+
+<img src="brand/logo.png" alt="the sky is not real" width="520" />
+
+**[theskyisnotreal.com](https://theskyisnotreal.com)** · *Wake up. Look up. Doubt everything.*
+
+</div>
 
 A satirical landing page for **[theskyisnotreal.com](https://theskyisnotreal.com)** (live),
 served from **Cloudflare Workers** (Static Assets). Design direction: *cosmic premium dark*.
@@ -22,6 +28,8 @@ Highlights:
 - **Shareable results**: each scan gets a short id at a clean path
   (`theskyisnotreal.com/s/<id>`). The id is a *seed* that deterministically reproduces the
   exact result, so a shared link shows the sharer's verdict: no lookup, nothing stored.
+  Each link also unfurls with its own rendered social card (`/s/<id>/og.png`, a 1200x630
+  PNG generated at the edge with `workers-og`) plus a per-scan title and description.
 - **Join the revolution**: email signup stored in D1 (`POST /api/subscribe`, deduped), an
   anonymous scan beacon (`POST /api/scan`: coarse city-level geo, no IP), and a
   Cloudflare Access-gated `/admin` snapshot of both.
@@ -47,8 +55,10 @@ Highlights:
   homepage for `/s/<id>` scan permalinks, sets the asset cache policy, and owns the
   dynamic bits: `POST /api/subscribe`, `/api/geo`, the `POST /api/scan` beacon, and the
   `/admin` + `/api/admin/stats` dashboard (gated by Cloudflare Access, with the JWT
-  re-verified in the Worker so it fails closed). It also serves the agent surfaces:
-  the Markdown twins, the A2A Agent Card + `/a2a` endpoint, and the API catalog.
+  re-verified in the Worker so it fails closed). It also serves the agent surfaces
+  (the Markdown twins, the A2A Agent Card + `/a2a` endpoint, and the API catalog) and
+  renders the per-scan Open Graph cards (`/s/<id>/og.png`) with `workers-og`, the
+  Worker's single runtime dependency (Satori + resvg WASM).
 - **Cloudflare D1** stores subscribers and scans; the schema is `schema.sql`
   (apply with `wrangler d1 execute theskyisnotreal-db --file=schema.sql`, add
   `--remote` for production).
@@ -66,13 +76,17 @@ public/                 # static site source (build.js copies it into dist/)
   world-land.json       # land outline for the detector's location map
   favicon.svg           # crossed-out sky (cyan slash)
   favicon-16/32.png · apple-touch-icon.png · icon-192/512.png
-  og-image.jpg          # 1200x630 social share card (+ og-image.svg source)
+  fonts/                # Inter (woff) for the per-scan OG card render
+  og-image.jpg          # static 1200x630 default card (per-scan cards render dynamically)
   site.webmanifest · robots.txt · sitemap.xml · ads.txt
-src/index.js            # Worker: redirect, /s/*, /api/*, admin, agent surfaces, ASSETS
+src/index.js            # Worker: redirect, /s/*, /api/*, admin, agent surfaces, OG, ASSETS
+shared/scan-core.mjs    # deterministic scan verdict, shared by the Worker + client
 build.js                # copies public/ to dist/, content-hashes CSS/JS into /assets/
 dist/                   # build output wrangler serves (generated, git-ignored)
 schema.sql              # D1 schema: subscribers + scans
 test/                   # Worker integration tests (node --test + Miniflare)
+e2e/                    # Playwright browser user-story tests
+.github/workflows/      # CI: tests, e2e, post-deploy smoke, daily uptime
 wrangler.jsonc          # Workers config (assets, build hook, D1, Access, domains)
 brand/                  # logo + social-card sources
 dns/                    # DNS-AID agent-discovery record notes
@@ -83,17 +97,22 @@ dns/                    # DNS-AID agent-discovery record notes
 Requires Node.js 18+.
 
 ```bash
-npm install        # installs wrangler + miniflare
+npm install        # installs wrangler + miniflare + playwright
 npm run dev        # local preview (wrangler dev; runs build.js first)
 npm test           # Worker/API integration tests (node --test + Miniflare)
+npm run e2e        # browser user-story tests (Playwright; starts its own wrangler dev)
 ```
+
+The first `npm run e2e` may need `npx playwright install chromium` once.
 
 ## Deploy
 
 Deployment is automated: this repo is connected to **Cloudflare Workers Builds**, so every
-push to `main` builds and deploys, and GitHub Actions runs the test suite on every push
-and PR (GitHub tests, Cloudflare ships). `theskyisnotreal.com` + `www` are attached as
-custom domains (see the `routes` block in `wrangler.jsonc`).
+push to `main` builds and deploys (GitHub tests, Cloudflare ships). GitHub Actions runs the
+Worker/API tests and the Playwright E2E suite on every PR, a post-deploy `@smoke` check
+against live production after each push to `main`, and a daily uptime probe.
+`theskyisnotreal.com` + `www` are attached as custom domains (see the `routes` block in
+`wrangler.jsonc`).
 
 Manual deploy, if ever needed:
 
