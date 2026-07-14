@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { Miniflare } from "miniflare";
+import { WORKER_SCRIPT, MODULE_RULES, ensureBundle } from "./harness.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
@@ -29,9 +30,11 @@ const SCHEMA = readFileSync(new URL("../schema.sql", import.meta.url), "utf8")
  * we exercise handleSubscribe's 500 server_error path.
  */
 async function makeWorker({ withSchema = true } = {}) {
+  ensureBundle();
   const mf = new Miniflare({
     modules: true,
-    scriptPath: `${root}src/index.js`,
+    scriptPath: WORKER_SCRIPT,
+    modulesRules: MODULE_RULES,
     compatibilityDate: "2026-07-06",
     d1Databases: { DB: "test-db" },
     assets: {
