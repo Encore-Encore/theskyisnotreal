@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#05060a" />
+
+    <title>Known Sky-Rendering Glitches · the sky is not real</title>
+    <meta
+      name="description"
+      content="A satirical bug tracker of sky glitches: z-fighting sunsets, clouds that pop in, a reused moon, lens flares, rainbow color banding. A parody, with the real science behind each one. The sky is real."
+    />
+    <link rel="canonical" href="https://theskyisnotreal.com/evidence/glitches" />
+    <link rel="alternate" type="text/markdown" href="/evidence/glitches.md" title="Markdown" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph / social share -->
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Known Sky-Rendering Glitches · the sky is not real" />
+    <meta property="og:description" content="A satirical bug tracker for the firmament: sunsets, clouds, the moon, lens flares, rainbows. A parody, with the real science behind each one." />
+    <meta property="og:url" content="https://theskyisnotreal.com/evidence/glitches" />
+    <meta property="og:image" content="https://theskyisnotreal.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Known Sky-Rendering Glitches · the sky is not real" />
+    <meta name="twitter:description" content="A satirical bug tracker for the firmament: sunsets, clouds, the moon, lens flares, rainbows. A parody, with the real science behind each one." />
+    <meta name="twitter:image" content="https://theskyisnotreal.com/og-image.jpg" />
+
+    <link rel="stylesheet" href="/styles.css" />
+
+    <!-- Breadcrumb structured data (SEO). Dropped from the Markdown twin (script). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Known Sky-Rendering Glitches",
+        "url": "https://theskyisnotreal.com/evidence/glitches",
+        "description": "A satirical bug tracker for the sky, with the real scientific explanation behind each supposed glitch. A work of parody; the sky is real.",
+        "isPartOf": { "@type": "WebSite", "name": "the sky is not real", "url": "https://theskyisnotreal.com/" },
+        "breadcrumb": {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://theskyisnotreal.com/" },
+            { "@type": "ListItem", "position": 2, "name": "The Evidence Files", "item": "https://theskyisnotreal.com/evidence" },
+            { "@type": "ListItem", "position": 3, "name": "Known Sky-Rendering Glitches", "item": "https://theskyisnotreal.com/evidence/glitches" }
+          ]
+        }
+      }
+    </script>
+
+    <!-- Google AdSense loader -->
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4698448614237305"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <canvas id="starfield" aria-hidden="true"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <main>
+      <section class="page">
+        <p class="section-kicker page__eyebrow">Evidence Files · Exhibit A</p>
+        <h1 class="page__title">Known Sky-Rendering Glitches</h1>
+        <p class="page__lead">
+          A bug tracker for the firmament. Every ticket logs a spot where the backdrop
+          supposedly shows its seams: a flickering horizon, clouds that pop in, a moon
+          reused across every time zone. Assignee on all of them, naturally, is Big Sky.
+        </p>
+
+        <div class="prose">
+          <p>
+            Each ticket runs in three parts: what the "witness" reported, the status we
+            stamped on it, and then <strong>what is actually happening</strong>, which is
+            always more elegant than a bug.
+          </p>
+
+          <h2>GLITCH-001 · Z-fighting at the horizon (sunsets)</h2>
+          <p>
+            <em>Report:</em> at dusk the sky can't decide on a color, so two textures
+            fight over the same pixels: orange, pink, a bruised violet, all flickering as
+            the sun clips through the floor of the world.
+          </p>
+          <p><strong>Status:</strong> WONTFIX · Assignee: Big Sky · Severity: gorgeous</p>
+          <p>
+            <strong>What's actually happening:</strong> at sunset the light travels a much
+            longer path through the atmosphere, so more of the short (blue) wavelengths
+            scatter away and the reds and oranges reach your eye. It's called Rayleigh
+            scattering, and it's why noon is blue and dusk is red. No texture fight, just
+            air doing physics.
+          </p>
+
+          <h2>GLITCH-014 · Cloud pop-in</h2>
+          <p>
+            <em>Report:</em> clouds "appear" as you watch, and the far ones fade into a
+            haze at the horizon. Classic render distance. The world is buffering.
+          </p>
+          <p><strong>Status:</strong> WORKING AS DESIGNED · Assignee: Big Sky</p>
+          <p>
+            <strong>What's actually happening:</strong> clouds form when moist air rises,
+            cools, and its water vapor condenses past the dew point onto tiny particles.
+            They genuinely wink into being. The horizon haze is just a lot of atmosphere
+            stacked edge-on between you and the distance. Depth, not a draw call.
+          </p>
+
+          <h2>GLITCH-032 · The moon, reused across every time zone</h2>
+          <p>
+            <em>Report:</em> one moon asset, instanced globally. Everyone sees the same
+            face, the same craters, the same tidy circle. Suspiciously efficient.
+          </p>
+          <p><strong>Status:</strong> DUPLICATE (there is only one) · Assignee: Big Sky</p>
+          <p>
+            <strong>What's actually happening:</strong> there <em>is</em> only one Moon,
+            and it's tidally locked to Earth, so the same side always faces us. It's also
+            far enough away that everyone on the night side sees essentially the same view
+            at once. One object, one face, real orbit.
+          </p>
+
+          <h2>GLITCH-047 · Lens flare with no lens</h2>
+          <p>
+            <em>Report:</em> look near the sun and you get streaks, rings, and the odd
+            bright spot beside it. Lens flare. But the naked eye has no lens coating, so
+            who's compositing this?
+          </p>
+          <p><strong>Status:</strong> CANNOT REPRODUCE (please stop staring at the sun)</p>
+          <p>
+            <strong>What's actually happening:</strong> your eye very much has a lens, and
+            light scatters and diffracts inside it. Those bright spots flanking the sun can
+            be sun dogs, sunlight refracting through hexagonal ice crystals in high cirrus
+            clouds at about 22 degrees. Optics, not post-processing. (And really, don't
+            stare at the sun.)
+          </p>
+
+          <h2>GLITCH-063 · Color banding on the ramp (rainbows)</h2>
+          <p>
+            <em>Report:</em> after rain the sky shows a perfect gradient in fixed bands,
+            same order every time. That's an 8-bit color ramp if we've ever seen one.
+          </p>
+          <p><strong>Status:</strong> WONTFIX · Assignee: Big Sky · Severity: delightful</p>
+          <p>
+            <strong>What's actually happening:</strong> each raindrop refracts sunlight,
+            splits it by wavelength, bounces it off the back of the drop, and sends it out
+            at about 42 degrees. Millions of drops do this at once and you see an arc,
+            always in the same spectral order because that's the order light disperses.
+            The "banding" is the actual spectrum.
+          </p>
+
+          <h2>GLITCH-088 · Screen tearing during a solar eclipse</h2>
+          <p>
+            <em>Report:</em> occasionally the sun is briefly overwritten by a black disc.
+            Total draw failure. Somebody shipped on a Friday.
+          </p>
+          <p><strong>Status:</strong> SCHEDULED (see the <a href="/evidence/memo">maintenance memo</a>)</p>
+          <p>
+            <strong>What's actually happening:</strong> the Moon passes directly between
+            the Earth and the Sun and its shadow falls on you. It's predictable centuries
+            in advance because it's just orbital geometry. Not a crash, a clockwork
+            coincidence of sizes and distances that happens to be spectacular.
+          </p>
+
+          <h2>The pattern</h2>
+          <p>
+            Every "glitch" is a real phenomenon with a real, testable explanation, which is
+            exactly the joke: a confident bug report can make wonder look like a defect.
+            Read the <a href="/evidence/memo">leaked maintenance memo</a> next, or
+            <a href="/#scan">run the Deception Detector</a> on your own sky. Then go read
+            about Rayleigh scattering for real. The sky is not a render. It's better than one.
+          </p>
+
+          <a class="back-link" href="/evidence">← Back to the Evidence Files</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p class="footer__mark">the sky is not real</p>
+      <nav class="footer__nav" aria-label="Footer">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/evidence">Evidence</a>
+        <a href="/contact">Contact</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/disclaimer">Disclaimer</a>
+      </nav>
+      <p class="footer__fine">
+        This is a satirical website. The sky is, in fact, probably real. Please look up
+        responsibly.
+      </p>
+      <p class="footer__meta">© <span id="year">2026</span> theskyisnotreal.com · Stay skeptical.</p>
+    </footer>
+
+    <script src="/script.js" defer></script>
+  </body>
+</html>

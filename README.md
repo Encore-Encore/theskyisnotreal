@@ -34,6 +34,10 @@ Highlights:
   viewer's location. Each link also unfurls with its own rendered social card
   (`/s/<id>/og.png`, a 1200x630 PNG generated at the edge with `workers-og`) plus a
   per-scan title and description.
+- **The Evidence Files** (`/evidence`): a hub linking two joke "exhibits", a bug tracker of
+  sky "glitches" (`/evidence/glitches`) and a leaked Big Sky maintenance memo
+  (`/evidence/memo`). Each item is debunked in place with the real science (Rayleigh
+  scattering, cloud formation, orbital mechanics, and so on).
 - **Join the revolution**: email signup stored in D1 (`POST /api/subscribe`, deduped), an
   anonymous scan beacon (`POST /api/scan`: coarse city-level geo, no IP), and a
   Cloudflare Access-gated `/admin` snapshot of both.
@@ -75,6 +79,9 @@ public/                 # static site source (build.js copies it into dist/)
   styles.css
   script.js             # starfield, scroll reveals, count-up stats, Deception Detector
   about/disclaimer/privacy/contact.html   # trust pages
+  evidence.html          # Evidence Files hub
+  evidence/glitches.html # Exhibit A: joke bug tracker, debunked with real science
+  evidence/memo.html     # Exhibit B: leaked Big Sky memo, annotated with real astronomy
   404.html              # on-brand custom 404
   llms.txt              # agent-facing index of the site + its Markdown twins
   world-land.json       # land outline for the detector's location map
