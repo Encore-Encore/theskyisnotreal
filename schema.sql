@@ -10,13 +10,20 @@ CREATE TABLE IF NOT EXISTS subscribers (
 
 -- Scans recorded by the "scan the sky" detector (POST /api/scan beacon). Geo is
 -- Cloudflare's IP-based edge data (request.cf): coarse city/region/country, no
--- IP address and no other PII is stored. Only user-initiated scans are counted;
--- reproducing a shared /s/<id> permalink does not record a new scan.
+-- IP address and no other PII is stored. `seed` is the scan's shareable id, stored
+-- so the public "recently scanned" feed can reproduce that scan's verdict. Only
+-- user-initiated scans are counted; reproducing a shared /s/<id> permalink does not
+-- record a new scan. The coarse city/region/country and the verdict are shown
+-- publicly (the scan counter + recent-scans feed); see the PII note in CLAUDE.md.
 CREATE TABLE IF NOT EXISTS scans (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   country    TEXT,
   region     TEXT,
-  city       TEXT
+  city       TEXT,
+  seed       TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_scans_created_at ON scans (created_at);
+-- Fresh DBs get `seed` from the CREATE above. For an existing prod DB, add it ONCE
+-- (not idempotent, keep out of the re-runnable file):
+--   wrangler d1 execute theskyisnotreal-db --remote --command "ALTER TABLE scans ADD COLUMN seed TEXT"

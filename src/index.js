@@ -208,6 +208,17 @@ export default {
       return handleScan(request, env);
     }
 
+    // Public "skies scanned" counter (total scan count). No PII, cached briefly.
+    if (url.pathname === "/api/stats") {
+      return publicStats(env);
+    }
+
+    // Public "recently scanned" feed: the last 5 scans, coarse city + the verdict
+    // reproduced from the seed. Cached briefly so it feels live but stays cheap.
+    if (url.pathname === "/api/scans/recent") {
+      return recentScans(env);
+    }
+
     // Admin analytics snapshot. Both the HTML dashboard (/admin) and its JSON
     // (/api/admin/stats) are gated by Cloudflare Access: the edge requires login
     // before the request arrives, and we ALSO verify the Access JWT here so the
@@ -808,16 +819,75 @@ async function handleScan(request, env) {
     );
   }
   const cf = request.cf || {};
+  // The beacon may carry the scan's seed so the public feed can reproduce its
+  // verdict. Optional and untrusted: validate to the client id shape or drop it.
+  let seed = null;
+  try {
+    const body = await request.json();
+    if (body && typeof body.seed === "string" && /^[a-z0-9]{1,64}$/i.test(body.seed)) {
+      seed = body.seed.toLowerCase();
+    }
+  } catch (e) {
+    /* no/invalid JSON body: seed stays null */
+  }
   try {
     await env.DB.prepare(
-      "INSERT INTO scans (country, region, city) VALUES (?, ?, ?)"
+      "INSERT INTO scans (country, region, city, seed) VALUES (?, ?, ?, ?)"
     )
-      .bind(cf.country || null, cf.region || null, cf.city || null)
+      .bind(cf.country || null, cf.region || null, cf.city || null, seed)
       .run();
   } catch (e) {
     return Response.json({ error: "server_error" }, { status: 500 });
   }
   return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+}
+
+/**
+ * Public "skies scanned" counter. Just the total count, no PII. Cached for a
+ * minute so the homepage widget is effectively free.
+ */
+async function publicStats(env) {
+  let scans = 0;
+  try {
+    const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM scans").first();
+    scans = (row && row.n) || 0;
+  } catch (e) {
+    /* best-effort: fall back to 0 rather than error the widget */
+  }
+  return Response.json({ scans }, { headers: { "Cache-Control": "public, max-age=60" } });
+}
+
+/**
+ * Public "recently scanned" feed: the last 5 scans that carry a seed, with the
+ * verdict reproduced from that seed. Exposes coarse edge geo (city/region/country)
+ * by design (see the PII note in CLAUDE.md); never IPs. Cached briefly so it feels
+ * live without hammering D1.
+ */
+async function recentScans(env) {
+  let rows = [];
+  try {
+    const res = await env.DB.prepare(
+      "SELECT city, region, country, seed, created_at FROM scans WHERE seed IS NOT NULL ORDER BY id DESC LIMIT 5"
+    ).all();
+    rows = res.results || [];
+  } catch (e) {
+    /* best-effort: empty feed rather than an error */
+  }
+  const scans = rows.map((r) => {
+    const v = reproduce(r.seed);
+    return {
+      city: r.city || null,
+      region: r.region || null,
+      country: r.country || null,
+      // The canonical settled verdict (always FAKE), so the feed agrees with the
+      // /s/<id> card and page for the same id (the 2% "REAL?!" only flashes on-page).
+      verdict: v.verdict,
+      confidence: v.conf,
+      seed: r.seed,
+      at: r.created_at,
+    };
+  });
+  return Response.json({ scans }, { headers: { "Cache-Control": "public, max-age=15" } });
 }
 
 // ---------------------------------------------------------------- admin: access gate

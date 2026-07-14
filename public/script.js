@@ -379,10 +379,19 @@
 
   // Fire-and-forget beacon so the Worker can count a scan + its edge geo. Wrapped
   // so a blocked/failed beacon can never break the scan itself.
-  function reportScan() {
+  function reportScan(seed) {
     try {
-      if (navigator.sendBeacon) navigator.sendBeacon("/api/scan");
-      else fetch("/api/scan", { method: "POST", keepalive: true }).catch(function () {});
+      var body = JSON.stringify({ seed: seed });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon("/api/scan", new Blob([body], { type: "application/json" }));
+      } else {
+        fetch("/api/scan", {
+          method: "POST",
+          keepalive: true,
+          headers: { "Content-Type": "application/json" },
+          body: body
+        }).catch(function () {});
+      }
     } catch (e) { /* analytics is best-effort */ }
   }
 
@@ -391,9 +400,11 @@
     loadLand(); // ensure the map is loading even if the scan beat the scroll-in
     busy = true;
     // Count only user-initiated scans, not shared /s/<id> permalink replays (those
-    // arrive with a seed already set).
-    if (!seed) reportScan();
+    // arrive with a seed already set). Generate the seed first so the beacon can
+    // carry it, letting the public feed reproduce this scan's verdict.
+    var userInitiated = !seed;
     if (!seed) seed = Math.floor(Math.random() * Math.pow(36, 5)).toString(36);
+    if (userInitiated) reportScan(seed);
     currentSeed = seed;
     rng = seedRng(seed);
     try { history.replaceState(null, "", "/s/" + seed); } catch (e) { /* ignore */ }
@@ -684,5 +695,92 @@
 
   events.forEach(function (e) { window.addEventListener(e, loadAds, opts); });
   fallback = setTimeout(loadAds, 4000);
+})();
+
+/* ---------- Public scan counter + recently-scanned feed ---------- */
+(function () {
+  "use strict";
+  var reduceMotion =
+    window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function fmt(n) { return n.toLocaleString("en-US"); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  // "Skies scanned" counter: total from /api/stats, counted up.
+  var counterEl = document.getElementById("skyCounter");
+  var numEl = document.getElementById("skyCounterNum");
+  if (counterEl && numEl) {
+    fetch("/api/stats")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var target = d && typeof d.scans === "number" ? d.scans : 0;
+        counterEl.hidden = false;
+        if (reduceMotion || target === 0) { numEl.textContent = fmt(target); return; }
+        var start = null, duration = 1100;
+        (function step(ts) {
+          if (start === null) start = ts;
+          var p = Math.min((ts - start) / duration, 1);
+          numEl.textContent = fmt(Math.round(target * (1 - Math.pow(1 - p, 3))));
+          if (p < 1) requestAnimationFrame(step);
+        })(performance.now ? performance.now() : Date.now());
+      })
+      .catch(function () { /* leave the counter hidden on failure */ });
+  }
+
+  // "Recently scanned" feed: last 5 from /api/scans/recent.
+  var feedEl = document.getElementById("skyFeed");
+  var listEl = document.getElementById("skyFeedList");
+  if (feedEl && listEl) {
+    fetch("/api/scans/recent")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var scans = (d && d.scans) || [];
+        if (!scans.length) return; // stay hidden until scans exist
+        listEl.innerHTML = scans.map(rowHtml).join("");
+        feedEl.hidden = false;
+      })
+      .catch(function () { /* leave hidden */ });
+  }
+
+  function place(s) {
+    var parts = [];
+    if (s.city) parts.push(s.city);
+    if (s.region && s.region !== s.city) parts.push(s.region);
+    if (!parts.length && s.country) parts.push(s.country);
+    return parts.length ? parts.join(", ") : "An undisclosed sky";
+  }
+
+  function ago(iso) {
+    var t = Date.parse(String(iso || "").replace(" ", "T") + "Z");
+    if (isNaN(t)) return "";
+    var s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+    if (s < 60) return s + "s ago";
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + "m ago";
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + "h ago";
+    return Math.floor(h / 24) + "d ago";
+  }
+
+  function rowHtml(s) {
+    var real = s.verdict === "REAL?!";
+    var conf = s.confidence
+      ? '<span class="scanner__feed-conf">' + esc(s.confidence) + "%</span>"
+      : "";
+    return (
+      '<li class="scanner__feed-row">' +
+      '<a class="scanner__feed-link" href="/s/' + esc(s.seed) + '">' +
+      '<span class="scanner__feed-loc">◉ ' + esc(place(s)) + "</span>" +
+      '<span class="scanner__feed-meta">' +
+      '<span class="scanner__feed-verdict' + (real ? " is-real" : "") + '">' + esc(s.verdict) + "</span>" +
+      conf +
+      '<span class="scanner__feed-time">' + esc(ago(s.at)) + "</span>" +
+      "</span>" +
+      "</a></li>"
+    );
+  }
 })();
 

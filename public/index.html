@@ -151,6 +151,10 @@
       <section class="scanner" id="scan">
         <p class="section-kicker reveal">Prove it yourself</p>
         <h2 class="section-title reveal">Put the sky through our detector</h2>
+        <p class="scanner__counter reveal" id="skyCounter" hidden>
+          <strong class="scanner__counter-num" id="skyCounterNum">0</strong> skies scanned
+          <span class="scanner__counter-sub">· 0 confirmed real</span>
+        </p>
         <div class="scanner__controls scanner__controls--top reveal">
           <button class="btn btn--primary btn--lg" id="skyScan" type="button">Scan the sky</button>
         </div>
@@ -163,6 +167,13 @@
           <div class="scanner__log" id="skyLog" role="status" aria-live="polite"></div>
           <div id="skyRes"></div>
           <div class="scanner__toast" id="skyToast">Link copied. The truth is spreading.</div>
+        </div>
+        <div class="scanner__feed reveal" id="skyFeed" hidden>
+          <div class="scanner__feed-head">
+            <span class="scanner__feed-title">Recently scanned skies</span>
+            <span class="scanner__feed-note">last 5</span>
+          </div>
+          <ul class="scanner__feed-list" id="skyFeedList"></ul>
         </div>
       </section>
 
