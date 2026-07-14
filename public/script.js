@@ -170,14 +170,22 @@
   var toast = document.getElementById("skyToast");
   if (!vp || !btn) return;
 
-  // Visitor location (IP-based, from /api/geo), powers the "scanning the sky over
-  // <city>" line and the map zoom-to-your-sky. NOT part of the seed, so shared results
-  // are unaffected (each viewer just scans their own local sky).
+  // Location that powers the "scanning the sky over <city>" line and the map zoom.
+  // On a shared /s/<id> the server injects that scan's ORIGINAL location as
+  // window.__SCAN_GEO__, so opening it shows where the scan was taken. Otherwise we
+  // use the viewer's own location from /api/geo (their local sky).
   var geo = null;
-  fetch("/api/geo")
-    .then(function (r) { return r.json(); })
-    .then(function (g) { geo = g; paintGeo(); refreshMap(); })
-    .catch(function () { geo = {}; paintGeo(); });
+  var injectedGeo = window.__SCAN_GEO__;
+  if (injectedGeo && (injectedGeo.city || injectedGeo.country || typeof injectedGeo.latitude === "number")) {
+    geo = injectedGeo;
+    paintGeo();
+    refreshMap();
+  } else {
+    fetch("/api/geo")
+      .then(function (r) { return r.json(); })
+      .then(function (g) { geo = g; paintGeo(); refreshMap(); })
+      .catch(function () { geo = {}; paintGeo(); });
+  }
 
   // Stars inside the scanner viewport.
   for (var i = 0; i < 26; i++) {

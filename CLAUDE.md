@@ -83,6 +83,10 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
   Cache API, immutable). The /s/ HTML branch runs an HTMLRewriter pass
   (`rewriteScanMeta`) to point `og:image`/`twitter:image` at that PNG and rewrite the
   title/description, while keeping `X-Robots-Tag: noindex` and the canonical at "/".
+  It also looks up that scan's recorded location (`scanGeoBySeed`, by seed) and
+  injects `window.__SCAN_GEO__` so the page renders where the scan was TAKEN (map zoom
+  + "scanning the sky over <city>"), not the viewer's location. Falls back to the
+  viewer's `/api/geo` when the seed has no recorded scan.
 - **Every asset response funnels through `negotiateMarkdown()`** at the end of
   fetch: it sets `Vary: Accept`, the agent-discovery `Link` header on HTML, and
   cache headers (immutable for /assets/, a week for stable media). Because of
@@ -98,9 +102,11 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
   503. The Worker verifies the Access JWT itself even though Cloudflare's edge also
   gates the route; keep that defense-in-depth. (Both vars are committed in
   `wrangler.jsonc`; they are not secrets.)
-- **/s/<id> is stateless**: the id is a seed the client uses to reproduce a scan.
-  Served as the homepage with `X-Robots-Tag: noindex`; reproduced scans never
-  beacon to /api/scan.
+- **/s/<id>**: the id is a seed the client uses to reproduce a scan's verdict.
+  Served as the homepage with `X-Robots-Tag: noindex`; reproduced scans never beacon
+  to /api/scan. The verdict is stateless (pure function of the seed), but the page
+  does a D1 read (`scanGeoBySeed`) to render the scan's original location; a seed with
+  no recorded scan just falls back to the viewer's `/api/geo`.
 
 ## Adding a page
 

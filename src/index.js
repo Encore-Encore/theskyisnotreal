@@ -89,7 +89,7 @@ function cardHtml(id, scan, logo) {
 // same HTMLRewriter the Markdown twins use. setAttribute escapes the values, so
 // the reproduced strings need no manual escaping. The <link rel=canonical> is left
 // pointing at "/" on purpose (these variants stay noindex).
-function rewriteScanMeta(res, id, origin, scan) {
+function rewriteScanMeta(res, id, origin, scan, geo) {
   const title = `Verdict: FAKE, ${scan.conf}% synthetic`;
   const description = `Diagnosis: ${scan.diag}. ${scan.rec} Scan your own sky on the Deception Detector.`;
   const image = `${origin}/s/${id}/og.png`;
@@ -99,7 +99,7 @@ function rewriteScanMeta(res, id, origin, scan) {
       el.setAttribute("content", value);
     },
   });
-  return new HTMLRewriter()
+  let rewriter = new HTMLRewriter()
     .on('meta[property="og:title"]', setContent(title))
     .on('meta[name="twitter:title"]', setContent(title))
     .on('meta[property="og:description"]', setContent(description))
@@ -107,8 +107,20 @@ function rewriteScanMeta(res, id, origin, scan) {
     .on('meta[property="og:image"]', setContent(image))
     .on('meta[name="twitter:image"]', setContent(image))
     .on('meta[property="og:image:type"]', setContent("image/png"))
-    .on('meta[property="og:url"]', setContent(pageUrl))
-    .transform(res);
+    .on('meta[property="og:url"]', setContent(pageUrl));
+
+  // If this scan has a recorded location, inject it so the client renders THAT
+  // sky (map zoom + city line) instead of the viewer's. Escape "<" so the JSON
+  // cannot break out of the <script> element.
+  if (geo && (geo.city || geo.country || typeof geo.latitude === "number")) {
+    const json = JSON.stringify(geo).replace(/</g, "\\u003c");
+    rewriter = rewriter.on("head", {
+      element(el) {
+        el.append(`<script>window.__SCAN_GEO__=${json};</script>`, { html: true });
+      },
+    });
+  }
+  return rewriter.transform(res);
 }
 
 export default {
@@ -309,7 +321,9 @@ export default {
       // /s/<id>/og.png). Other /s/* shapes just serve the homepage unchanged.
       const idMatch = url.pathname.match(/^\/s\/([a-z0-9]{1,64})\/?$/i);
       if (idMatch && res.status === 200) {
-        res = rewriteScanMeta(res, idMatch[1], url.origin, reproduce(idMatch[1]));
+        const id = idMatch[1];
+        const geo = await scanGeoBySeed(env, id);
+        res = rewriteScanMeta(res, id, url.origin, reproduce(id), geo);
       }
     } else {
       // Serve the static site (HTML/CSS/JS/images) from ./public.
@@ -830,11 +844,26 @@ async function handleScan(request, env) {
   } catch (e) {
     /* no/invalid JSON body: seed stays null */
   }
+  const num = (v) => {
+    const s = typeof v === "string" ? v.trim() : v;
+    if (s == null || s === "") return null;
+    const n = Number(s);
+    // Round to ~1km. Cloudflare gives a city centroid, and the map only zooms to
+    // region scale, so this stays coarse and matches the PII stance.
+    return isFinite(n) ? Math.round(n * 100) / 100 : null;
+  };
   try {
     await env.DB.prepare(
-      "INSERT INTO scans (country, region, city, seed) VALUES (?, ?, ?, ?)"
+      "INSERT INTO scans (country, region, city, seed, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?)"
     )
-      .bind(cf.country || null, cf.region || null, cf.city || null, seed)
+      .bind(
+        cf.country || null,
+        cf.region || null,
+        cf.city || null,
+        seed,
+        num(cf.latitude),
+        num(cf.longitude)
+      )
       .run();
   } catch (e) {
     return Response.json({ error: "server_error" }, { status: 500 });
@@ -888,6 +917,35 @@ async function recentScans(env) {
     };
   });
   return Response.json({ scans }, { headers: { "Cache-Control": "public, max-age=15" } });
+}
+
+/**
+ * Look up the coarse location a scan was taken at, by its seed, so a shared
+ * /s/<id> can show WHERE the scan happened (map zoom + "scanning the sky over
+ * <city>") rather than the viewer's location. Returns null when the seed has no
+ * recorded scan (a freshly reproduced or hand-crafted id), in which case the
+ * client falls back to the viewer's /api/geo.
+ */
+async function scanGeoBySeed(env, seed) {
+  try {
+    // Earliest row for the seed, so a shared link stays pinned to the scan that
+    // first minted it (the base-36 seed space is small enough to collide).
+    const row = await env.DB.prepare(
+      "SELECT city, region, country, latitude, longitude FROM scans WHERE seed = ? ORDER BY id ASC LIMIT 1"
+    )
+      .bind(seed)
+      .first();
+    if (!row) return null;
+    return {
+      city: row.city || null,
+      region: row.region || null,
+      country: row.country || null,
+      latitude: typeof row.latitude === "number" ? row.latitude : null,
+      longitude: typeof row.longitude === "number" ? row.longitude : null,
+    };
+  } catch (e) {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------- admin: access gate

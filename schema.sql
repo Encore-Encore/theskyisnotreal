@@ -21,9 +21,14 @@ CREATE TABLE IF NOT EXISTS scans (
   country    TEXT,
   region     TEXT,
   city       TEXT,
-  seed       TEXT
+  seed       TEXT,
+  latitude   REAL,
+  longitude  REAL
 );
 CREATE INDEX IF NOT EXISTS idx_scans_created_at ON scans (created_at);
--- Fresh DBs get `seed` from the CREATE above. For an existing prod DB, add it ONCE
--- (not idempotent, keep out of the re-runnable file):
+CREATE INDEX IF NOT EXISTS idx_scans_seed ON scans (seed);
+-- Fresh DBs get all columns from the CREATE above. For an existing prod DB, add the
+-- newer columns ONCE (not idempotent, keep out of the re-runnable file):
 --   wrangler d1 execute theskyisnotreal-db --remote --command "ALTER TABLE scans ADD COLUMN seed TEXT"
+--   wrangler d1 execute theskyisnotreal-db --remote --command "ALTER TABLE scans ADD COLUMN latitude REAL"
+--   wrangler d1 execute theskyisnotreal-db --remote --command "ALTER TABLE scans ADD COLUMN longitude REAL"

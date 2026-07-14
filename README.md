@@ -29,9 +29,11 @@ Highlights:
   verdict, each linking to its shareable card) sit alongside it.
 - **Shareable results**: each scan gets a short id at a clean path
   (`theskyisnotreal.com/s/<id>`). The id is a *seed* that deterministically reproduces the
-  exact result, so a shared link shows the sharer's verdict: no lookup, nothing stored.
-  Each link also unfurls with its own rendered social card (`/s/<id>/og.png`, a 1200x630
-  PNG generated at the edge with `workers-og`) plus a per-scan title and description.
+  exact result, so a shared link shows that scan's verdict. Opening one also shows
+  where the scan was taken (its city and a map zoom), a small geo lookup by id, not the
+  viewer's location. Each link also unfurls with its own rendered social card
+  (`/s/<id>/og.png`, a 1200x630 PNG generated at the edge with `workers-og`) plus a
+  per-scan title and description.
 - **Join the revolution**: email signup stored in D1 (`POST /api/subscribe`, deduped), an
   anonymous scan beacon (`POST /api/scan`: coarse city-level geo, no IP), and a
   Cloudflare Access-gated `/admin` snapshot of both.
