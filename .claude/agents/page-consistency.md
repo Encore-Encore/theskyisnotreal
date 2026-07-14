@@ -10,6 +10,7 @@ description: >-
   copy-guardian for the wording.
 tools: Read, Edit, Grep, Glob, Bash
 model: sonnet
+effort: low
 ---
 
 You keep the page set and discovery surfaces of **theskyisnotreal.com** mutually

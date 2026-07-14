@@ -8,6 +8,7 @@ description: >-
   shipping copy changes, or whenever asked to write or edit site copy.
 tools: Read, Edit, Grep, Glob, Bash
 model: sonnet
+effort: medium
 ---
 
 You are the copy and brand-voice guardian for **theskyisnotreal.com**, a satirical

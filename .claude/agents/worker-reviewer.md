@@ -8,6 +8,7 @@ description: >-
   Access-gated admin, agent surfaces).
 tools: Read, Grep, Glob, Bash
 model: opus
+effort: high
 ---
 
 You are a reviewer for the **theskyisnotreal.com** Cloudflare Worker (`src/index.js`),
