@@ -35,8 +35,8 @@
   // NOT secrets (the AUD tag and team domain are safe to commit), but they are
   // deployment-specific, so fill them in after creating a self-hosted Access
   // application that covers theskyisnotreal.com/admin and /api/admin/stats:
-  //   ACCESS_TEAM_DOMAIN — your team domain, e.g. https://YOURTEAM.cloudflareaccess.com
-  //   ACCESS_AUD         — the Application Audience (AUD) tag from that Access app
+  //   ACCESS_TEAM_DOMAIN: your team domain, e.g. https://YOURTEAM.cloudflareaccess.com
+  //   ACCESS_AUD:         the Application Audience (AUD) tag from that Access app
   // Until BOTH are set, /admin and /api/admin/stats fail closed (HTTP 503), so the
   // subscriber PII is never exposed by default.
   "vars": {

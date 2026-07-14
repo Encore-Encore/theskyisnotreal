@@ -43,7 +43,7 @@ files. You produce a findings list and run the tests. Be specific and concrete.
 
 5. **Tests and hygiene.** Any new or changed route should have matching coverage in
    `test/subscribe.test.js`; if it lacks a test, flag it for the miniflare-test-writer
-   subagent. Comments must contain no em dashes (`—`).
+   subagent. Comments must contain no em dashes (U+2014).
 
 ## How to report
 

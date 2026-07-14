@@ -2,7 +2,7 @@
  * Integration tests for Markdown-for-Agents content negotiation.
  *
  * These run the REAL Worker (src/index.js) in Miniflare. The static ASSETS
- * binding is stubbed with a service function that returns HTML — this mirrors
+ * binding is stubbed with a service function that returns HTML; this mirrors
  * production, where `run_worker_first` runs the Worker and it calls
  * `env.ASSETS.fetch(...)`. We assert the Worker converts HTML to Markdown when
  * (and only when) the client negotiates for it, and that HTML stays the default.

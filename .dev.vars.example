@@ -1,6 +1,6 @@
 # Local-only environment variables for `wrangler dev`.
 # Copy to `.dev.vars` (git-ignored) and fill in as needed.
-# Nothing is required today — this file reserves space for future secrets,
+# Nothing is required today; this file reserves space for future secrets,
 # e.g. an ad-network key or analytics token.
 #
 # EXAMPLE_SECRET="value"

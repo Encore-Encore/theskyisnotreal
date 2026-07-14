@@ -108,6 +108,13 @@ npm run deploy     # = wrangler deploy
 - **House ads / server-side ad config**: the Worker fronts every request, so ad rotation
   can move server-side without re-architecting.
 
+## License
+
+The code is [MIT](LICENSE). The jokes are not: the satirical copy, the logo and brand
+assets (`brand/`, the og images, the favicons), and the rest of the site's creative
+content are copyright Encore-Encore, all rights reserved. Fork the machinery; write
+your own sky.
+
 ---
 
 *This is a joke website. The sky is, in fact, probably real.*
