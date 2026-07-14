@@ -30,6 +30,17 @@ async function loadCardFonts(env, url) {
   return CARD_FONTS;
 }
 
+// The site favicon (cloud struck through by a cyan slash), fetched from ASSETS and
+// inlined as a data URI so Satori can draw it on the card. Memoized per isolate.
+let CARD_LOGO = null;
+async function loadLogo(env, url) {
+  if (CARD_LOGO) return CARD_LOGO;
+  const res = await env.ASSETS.fetch(new Request(new URL("/favicon.svg", url)));
+  const svg = await res.text(); // favicon.svg is ASCII, so btoa is safe
+  CARD_LOGO = `data:image/svg+xml;base64,${btoa(svg)}`;
+  return CARD_LOGO;
+}
+
 // Minimal HTML escape for reproduced scan strings interpolated into the card
 // markup. The pools contain no HTML-special characters today; this keeps it safe
 // if that ever changes. The seed is already validated to [a-z0-9]+.
@@ -44,17 +55,18 @@ function escapeHtml(s) {
 // The per-scan OG card, laid out for workers-og (Satori). Satori needs display:flex
 // on every element with more than one child, so the markup is explicit about it.
 // 1200x630, deep-space palette + cyan accent to match the site.
-function cardHtml(id, scan) {
+function cardHtml(id, scan, logo) {
   const diag = escapeHtml(scan.diag);
   const conf = escapeHtml(scan.conf);
   const permalink = "/s/" + escapeHtml(id);
   return `
   <div style="display:flex;flex-direction:column;width:1200px;height:630px;padding:84px;background:linear-gradient(150deg,#0b1026 0%,#05060a 58%);font-family:Inter;color:#e8ecf5;justify-content:space-between;">
     <div style="display:flex;align-items:center;">
+      <img src="${logo}" width="46" height="46" style="margin-right:18px;" />
       <div style="display:flex;font-size:34px;font-weight:700;color:#cfd6e6;">the sky is not real</div>
       <div style="display:flex;align-items:center;border:2px solid rgba(77,214,255,0.4);border-radius:999px;padding:11px 24px;margin-left:auto;">
         <div style="display:flex;width:12px;height:12px;border-radius:999px;background:#4dd6ff;margin-right:12px;"></div>
-        <div style="display:flex;font-size:22px;font-weight:700;letter-spacing:3px;color:#8fe6ff;">DECEPTION DETECTOR · ONLINE</div>
+        <div style="display:flex;font-size:22px;font-weight:700;letter-spacing:3px;color:#8fe6ff;">DECEPTION DETECTOR · ARCHIVED</div>
       </div>
     </div>
 
@@ -128,8 +140,11 @@ export default {
 
         try {
           const scan = reproduce(ogMatch[1]);
-          const fonts = await loadCardFonts(env, url);
-          const image = new ImageResponse(cardHtml(ogMatch[1], scan), {
+          const [fonts, logo] = await Promise.all([
+            loadCardFonts(env, url),
+            loadLogo(env, url),
+          ]);
+          const image = new ImageResponse(cardHtml(ogMatch[1], scan, logo), {
             width: 1200,
             height: 630,
             fonts,
