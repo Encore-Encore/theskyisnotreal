@@ -2,7 +2,7 @@ name: CI
 
 # Runs the Worker/API test suite on every push and PR. This is the gate that
 # catches regressions (email validation, D1 writes, status codes) before a
-# manual `wrangler deploy`. Deploys stay separate — GitHub tests, Cloudflare ships.
+# manual `wrangler deploy`. Deploys stay separate: GitHub tests, Cloudflare ships.
 on:
   push:
     branches: [main]

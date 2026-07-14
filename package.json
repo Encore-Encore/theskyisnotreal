@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "the sky is not real — a satirical landing page on Cloudflare Workers",
+  "description": "the sky is not real: a satirical landing page on Cloudflare Workers",
   "scripts": {
     "build": "node build.js",
     "dev": "wrangler dev",

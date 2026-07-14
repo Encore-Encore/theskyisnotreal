@@ -2,7 +2,7 @@
  * Integration tests for POST /api/subscribe.
  *
  * These run the REAL Worker (src/index.js) inside Miniflare against an in-memory
- * D1 database, so they exercise the actual routing, validation, and SQL — not a
+ * D1 database, so they exercise the actual routing, validation, and SQL, not a
  * reimplementation. Run with: npm test
  */
 import { test, before, after, beforeEach } from "node:test";
@@ -25,7 +25,7 @@ const SCHEMA = readFileSync(new URL("../schema.sql", import.meta.url), "utf8")
 
 /**
  * Build a Miniflare instance running the real Worker. When `withSchema` is
- * false the `subscribers` table is never created, so INSERT throws — that's how
+ * false the `subscribers` table is never created, so INSERT throws; that's how
  * we exercise handleSubscribe's 500 server_error path.
  */
 async function makeWorker({ withSchema = true } = {}) {
@@ -158,7 +158,7 @@ for (const [label, email] of [
   ["contains spaces", "a b@earth.dev"],
   ["too long (> 254)", `${"a".repeat(250)}@earth.dev`],
 ]) {
-  test(`invalid email — ${label} → 400 invalid_email`, async () => {
+  test(`invalid email (${label}) → 400 invalid_email`, async () => {
     const res = await post(mf, { email });
     assert.equal(res.status, 400);
     assert.deepEqual(await res.json(), { error: "invalid_email" });

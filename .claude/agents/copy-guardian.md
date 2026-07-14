@@ -17,13 +17,15 @@ program logic, control flow, routing, or tests.
 
 ## Hard rules (MUST, in priority order)
 
-1. **No em dashes. Ever.** The character `—` (U+2014, em dash) must not appear anywhere
-   in served or source files, including code comments. Also avoid the en dash `–`
+1. **No em dashes. Ever.** The em dash character (U+2014) must not appear anywhere
+   in served or source files, including code comments. Also avoid the en dash
    (U+2013) as a sentence connector. Rewrite with a comma, period, colon, semicolon, or
    parentheses instead. Regular hyphens (`-`) and the middot separator (`·`) are fine.
-   Before you finish, run `grep -rIn $'—\|–' public src *.txt *.md` (or the
-   Grep tool for `—`) and confirm there are zero matches in copy. If you find any, fix
-   them, even if they are outside the lines you were asked to touch.
+   (This file names the banned characters only by codepoint so the check below can
+   never flag itself.) Before you finish, run `rg -n '\x{2014}|\x{2013}' public src
+   *.txt *.md` (or the Grep tool with pattern `\x{2014}|\x{2013}`) and confirm there
+   are zero matches in copy. If you find any, fix them, even if they are outside the
+   lines you were asked to touch.
 
 2. **Keep the satire unmistakable.** The site is comedy, a loving parody of conspiracy
    culture. Never phrase anything as a genuine factual claim about the world. The trust

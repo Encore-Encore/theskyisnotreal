@@ -2,7 +2,7 @@
 
 Reference for the agent-discovery DNS records published for `theskyisnotreal.com`.
 These records live in **Cloudflare DNS**, not in this repo (there is no
-DNS-as-code pipeline here) — this file is the source of truth for what *should*
+DNS-as-code pipeline here); this file is the source of truth for what *should*
 be configured, so the intended DNS state travels with the code it describes.
 
 - Spec: <https://datatracker.ietf.org/doc/draft-mozleywilliams-dnsop-dnsaid/>
@@ -49,7 +49,7 @@ Cloudflare dashboard form (**DNS → Records → Add record**):
 | Target   | `theskyisnotreal.com`     | `theskyisnotreal.com` |
 | Value    | `alpn="a2a" port=443 mandatory="alpn,port"` | `alpn="h2" port=443` |
 
-> Note: `alpn="a2a"` is a DNS-AID service label, not a real TLS ALPN token —
+> Note: `alpn="a2a"` is a DNS-AID service label, not a real TLS ALPN token;
 > A2A runs over normal HTTPS (h2). It marks the record as "an A2A service lives
 > here"; the negotiated transport is still h2/http1.1.
 

@@ -42,4 +42,4 @@ SQL. Match the existing style in `test/subscribe.test.js`.
   For agent surfaces, assert both the negotiated (`Accept`) and explicit (`.md`) forms
   and that UI chrome does not leak into Markdown (see the `CHROME_NOISE` pattern).
 - Run `npm test` and leave the suite green. Report how many tests pass and what you added.
-- No em dashes (`—`) in test code or comments.
+- No em dashes (U+2014) in test code or comments.
