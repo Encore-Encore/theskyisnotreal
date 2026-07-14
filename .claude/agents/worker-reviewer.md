@@ -20,9 +20,10 @@ files. You produce a findings list and run the tests. Be specific and concrete.
 
 1. **Routing order.** Under `run_worker_first`, the Worker sees every request first.
    The www to apex 301 must run first. Specific handlers (`/api/*`, `/.well-known/*`,
-   `/a2a`, `*.md` twins, `/s/` permalinks) must be matched before the generic `ASSETS`
-   fallback, and unknown `/api/*` must return a JSON 404 rather than falling through to
-   an HTML asset.
+   `/a2a`, `*.md` twins, the per-scan image `/s/<id>/og.png`, `/s/` permalinks) must be
+   matched before the generic `ASSETS` fallback, and unknown `/api/*` must return a JSON
+   404 rather than falling through to an HTML asset. `/s/<id>/og.png` must precede the
+   generic `/s/` HTML branch, or the HTML branch swallows it.
 
 2. **Caching and content negotiation.** HTML and Markdown responses that vary on the
    `Accept` header must set `Vary: Accept` so a cache never serves HTML to an agent or
@@ -42,9 +43,19 @@ files. You produce a findings list and run the tests. Be specific and concrete.
    `.md` twins, and `Accept: text/markdown` negotiation must all still work and point at
    the apex origin (`https://theskyisnotreal.com`).
 
-5. **Tests and hygiene.** Any new or changed route should have matching coverage in
-   `test/subscribe.test.js`; if it lacks a test, flag it for the miniflare-test-writer
-   subagent. Comments must contain no em dashes (U+2014).
+5. **Dependency surface.** The Worker is intentionally near-zero-dependency: platform
+   primitives (HTMLRewriter, WebCrypto, D1) plus exactly one npm runtime dependency,
+   `workers-og` (Satori + resvg WASM), used ONLY for the per-scan OG image. This is a
+   deliberate, approved exception, not a smell: do not flag `workers-og` itself. DO flag
+   any additional runtime dependency, and flag OG-image rendering that fetches fonts
+   over the network (fonts must come from `public/fonts` via the ASSETS binding) or that
+   is not cached (the card is deterministic per id and must be Cache-API cached).
+
+6. **Tests and hygiene.** Any new or changed route should have matching coverage under
+   `test/`; if it lacks a test, flag it for the miniflare-test-writer subagent. The test
+   suite runs against the wrangler-built bundle via `test/harness.mjs` (not raw
+   `src/index.js`), because of the `workers-og` WASM import. Comments must contain no em
+   dashes (U+2014).
 
 ## How to report
 

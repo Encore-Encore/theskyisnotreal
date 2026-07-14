@@ -6,8 +6,113 @@
  * dynamic behaviour later (a live "watchers online" counter, server-side ad
  * config, house-ad rotation, etc.) without re-architecting.
  */
+import { ImageResponse } from "workers-og";
+import { reproduce } from "../shared/scan-core.mjs";
+
+// Fonts for the per-scan OG image. Served as static assets (public/fonts) and
+// fetched through the ASSETS binding so rendering needs no outbound network
+// (workers-og would otherwise fetch a default font from Google at render time).
+// Memoized per isolate; the woff files are tiny (~22 KB each).
+let CARD_FONTS = null;
+async function loadCardFonts(env, url) {
+  if (CARD_FONTS) return CARD_FONTS;
+  const fetchFont = async (weight) => {
+    const res = await env.ASSETS.fetch(
+      new Request(new URL(`/fonts/inter-latin-${weight}.woff`, url))
+    );
+    return res.arrayBuffer();
+  };
+  const [regular, bold] = await Promise.all([fetchFont(400), fetchFont(700)]);
+  CARD_FONTS = [
+    { name: "Inter", data: regular, weight: 400, style: "normal" },
+    { name: "Inter", data: bold, weight: 700, style: "normal" },
+  ];
+  return CARD_FONTS;
+}
+
+// The site favicon (cloud struck through by a cyan slash), fetched from ASSETS and
+// inlined as a data URI so Satori can draw it on the card. Memoized per isolate.
+let CARD_LOGO = null;
+async function loadLogo(env, url) {
+  if (CARD_LOGO) return CARD_LOGO;
+  const res = await env.ASSETS.fetch(new Request(new URL("/favicon.svg", url)));
+  const svg = await res.text(); // favicon.svg is ASCII, so btoa is safe
+  CARD_LOGO = `data:image/svg+xml;base64,${btoa(svg)}`;
+  return CARD_LOGO;
+}
+
+// Minimal HTML escape for reproduced scan strings interpolated into the card
+// markup. The pools contain no HTML-special characters today; this keeps it safe
+// if that ever changes. The seed is already validated to [a-z0-9]+.
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// The per-scan OG card, laid out for workers-og (Satori). Satori needs display:flex
+// on every element with more than one child, so the markup is explicit about it.
+// 1200x630, deep-space palette + cyan accent to match the site.
+function cardHtml(id, scan, logo) {
+  const diag = escapeHtml(scan.diag);
+  const conf = escapeHtml(scan.conf);
+  const permalink = "/s/" + escapeHtml(id);
+  return `
+  <div style="display:flex;flex-direction:column;width:1200px;height:630px;padding:84px;background:linear-gradient(150deg,#0b1026 0%,#05060a 58%);font-family:Inter;color:#e8ecf5;justify-content:space-between;">
+    <div style="display:flex;align-items:center;">
+      <img src="${logo}" width="46" height="46" style="margin-right:18px;" />
+      <div style="display:flex;font-size:34px;font-weight:700;color:#cfd6e6;">the sky is not real</div>
+      <div style="display:flex;align-items:center;border:2px solid rgba(77,214,255,0.4);border-radius:999px;padding:11px 24px;margin-left:auto;">
+        <div style="display:flex;width:12px;height:12px;border-radius:999px;background:#4dd6ff;margin-right:12px;"></div>
+        <div style="display:flex;font-size:22px;font-weight:700;letter-spacing:3px;color:#8fe6ff;">DECEPTION DETECTOR</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;">
+      <div style="display:flex;font-size:30px;font-weight:700;letter-spacing:16px;color:#8a93a8;margin-bottom:4px;">VERDICT</div>
+      <div style="display:flex;font-size:236px;font-weight:700;line-height:0.9;color:#4dd6ff;">FAKE</div>
+      <div style="display:flex;font-size:40px;font-weight:700;color:#e8ecf5;margin-top:20px;">${conf}% synthetic</div>
+    </div>
+
+    <div style="display:flex;align-items:center;">
+      <div style="display:flex;font-size:30px;color:#aeb6c8;">Diagnosis: ${diag}</div>
+      <div style="display:flex;font-size:28px;font-weight:700;color:#8fe6ff;margin-left:auto;">${permalink}</div>
+    </div>
+  </div>`;
+}
+
+// Rewrite the homepage's Open Graph / Twitter meta for a specific /s/<id> so the
+// shared link unfurls as THAT scan's verdict (image + title + description), all
+// derived from the id and matching the card at /s/<id>/og.png. Streaming, via the
+// same HTMLRewriter the Markdown twins use. setAttribute escapes the values, so
+// the reproduced strings need no manual escaping. The <link rel=canonical> is left
+// pointing at "/" on purpose (these variants stay noindex).
+function rewriteScanMeta(res, id, origin, scan) {
+  const title = `Verdict: FAKE, ${scan.conf}% synthetic`;
+  const description = `Diagnosis: ${scan.diag}. ${scan.rec} Scan your own sky on the Deception Detector.`;
+  const image = `${origin}/s/${id}/og.png`;
+  const pageUrl = `${origin}/s/${id}`;
+  const setContent = (value) => ({
+    element(el) {
+      el.setAttribute("content", value);
+    },
+  });
+  return new HTMLRewriter()
+    .on('meta[property="og:title"]', setContent(title))
+    .on('meta[name="twitter:title"]', setContent(title))
+    .on('meta[property="og:description"]', setContent(description))
+    .on('meta[name="twitter:description"]', setContent(description))
+    .on('meta[property="og:image"]', setContent(image))
+    .on('meta[name="twitter:image"]', setContent(image))
+    .on('meta[property="og:image:type"]', setContent("image/png"))
+    .on('meta[property="og:url"]', setContent(pageUrl))
+    .transform(res);
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     // Canonicalize host: 301 www -> apex, preserving path + query, so search
@@ -15,6 +120,62 @@ export default {
     if (url.hostname === "www.theskyisnotreal.com") {
       url.hostname = "theskyisnotreal.com";
       return Response.redirect(url.toString(), 301);
+    }
+
+    // Per-scan Open Graph image: /s/<id>/og.png renders THAT scan's verdict as a
+    // 1200x630 card, reproduced deterministically from the id (the same seed the
+    // client scanner replays). Immutable + long-cached because a given id always
+    // yields the same card. Handled ABOVE the /s/ HTML branch below, which would
+    // otherwise swallow it, and below the www->apex 301 so the image has one
+    // canonical host. The id is length-capped to bound the cache-key surface.
+    {
+      const ogMatch = url.pathname.match(/^\/s\/([a-z0-9]{1,64})\/og\.png$/i);
+      if (ogMatch) {
+        // The card is deterministic per id, so cache the rendered bytes (Satori +
+        // resvg is CPU-heavy) and serve subsequent hits from the edge cache.
+        const cache = caches.default;
+        const cacheKey = new Request(url.toString());
+        const hit = await cache.match(cacheKey);
+        if (hit) return hit;
+
+        try {
+          const scan = reproduce(ogMatch[1]);
+          const [fonts, logo] = await Promise.all([
+            loadCardFonts(env, url),
+            loadLogo(env, url),
+          ]);
+          const image = new ImageResponse(cardHtml(ogMatch[1], scan, logo), {
+            width: 1200,
+            height: 630,
+            fonts,
+          });
+          // Buffer once so the same bytes feed both the cache and the response.
+          const body = await image.arrayBuffer();
+          const res = new Response(body, {
+            headers: {
+              "Content-Type": "image/png",
+              "Cache-Control": "public, max-age=31536000, immutable",
+            },
+          });
+          ctx.waitUntil(cache.put(cacheKey, res.clone()));
+          return res;
+        } catch (err) {
+          // A render regression (Satori/resvg) should degrade to the static site
+          // card, not surface an exception page on the image URL. Do not cache the
+          // fallback, so a fix takes effect immediately.
+          console.error("og-card render failed", err);
+          const fallback = await env.ASSETS.fetch(
+            new Request(new URL("/og-image.jpg", url))
+          );
+          return new Response(fallback.body, {
+            status: 200,
+            headers: {
+              "Content-Type": "image/jpeg",
+              "Cache-Control": "no-store",
+            },
+          });
+        }
+      }
     }
 
     // Email signup: POST /api/subscribe { email } -> stored in D1 (deduped).
@@ -131,6 +292,14 @@ export default {
       const headers = new Headers(base.headers);
       headers.set("X-Robots-Tag", "noindex");
       res = new Response(base.body, { status: base.status, headers });
+
+      // For a well-formed /s/<id>, rewrite the social-card meta so the shared link
+      // unfurls as that scan's verdict, reproduced from the id (image lives at
+      // /s/<id>/og.png). Other /s/* shapes just serve the homepage unchanged.
+      const idMatch = url.pathname.match(/^\/s\/([a-z0-9]{1,64})\/?$/i);
+      if (idMatch && res.status === 200) {
+        res = rewriteScanMeta(res, idMatch[1], url.origin, reproduce(idMatch[1]));
+      }
     } else {
       // Serve the static site (HTML/CSS/JS/images) from ./public.
       res = await env.ASSETS.fetch(request);

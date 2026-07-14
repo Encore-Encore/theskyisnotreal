@@ -6,13 +6,18 @@
   "description": "the sky is not real: a satirical landing page on Cloudflare Workers",
   "scripts": {
     "build": "node build.js",
+    "build:worker": "wrangler deploy --dry-run --outdir .wrangler/test-build",
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "deploy": "wrangler deploy",
+    "pretest": "npm run build:worker",
     "test": "node --test 'test/**/*.test.js'"
   },
   "devDependencies": {
     "miniflare": "^4.20260701.0",
     "wrangler": "^4.24.4"
+  },
+  "dependencies": {
+    "workers-og": "^0.0.27"
   }
 }

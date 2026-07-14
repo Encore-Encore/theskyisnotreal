@@ -1,9 +1,12 @@
 # CLAUDE.md
 
 theskyisnotreal.com: a satirical "the sky is fake" conspiracy site. Plain HTML/CSS/JS
-(no framework) in `public/`, fronted by a single-file Cloudflare Worker
-(`src/index.js`) with a D1 database. The Worker is deliberately zero-dependency
-(HTMLRewriter, WebCrypto, D1 bindings only). The joke must stay unmistakably a joke.
+(no framework) in `public/`, fronted by a Cloudflare Worker (`src/index.js`) with a
+D1 database. The Worker keeps its dependency surface deliberately tiny: the platform
+primitives (HTMLRewriter, WebCrypto, D1 bindings) plus exactly one npm runtime
+dependency, `workers-og`, used only to render the per-scan Open Graph image (Satori +
+resvg WASM). Do not add further runtime dependencies without a strong reason. The joke
+must stay unmistakably a joke.
 
 ## Commands
 
@@ -57,8 +60,16 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
 - **Routing order in `src/index.js` matters**: www->apex 301, /api/subscribe,
   /api/geo, /api/scan, /admin + /api/admin/stats (Access-gated), then a /api/* 404
   catch-all. New API endpoints go ABOVE the catch-all. After that: agent-card
-  well-knowns, /a2a, /.well-known/api-catalog, `*.md` twins, /s/* permalinks,
-  static assets.
+  well-knowns, /a2a, /.well-known/api-catalog, `*.md` twins, the per-scan OG image
+  `/s/<id>/og.png` (MUST precede the /s/ HTML branch, which would otherwise swallow
+  it), /s/* permalinks, static assets.
+- **Per-scan social cards**: a shared `/s/<id>` link unfurls as THAT scan's verdict.
+  The verdict is reproduced from the id via `shared/scan-core.mjs` (`reproduce()`).
+  `/s/<id>/og.png` renders a 1200x630 card with `workers-og` (fonts served from
+  `public/fonts` via ASSETS, so no runtime Google Fonts fetch; result cached in the
+  Cache API, immutable). The /s/ HTML branch runs an HTMLRewriter pass
+  (`rewriteScanMeta`) to point `og:image`/`twitter:image` at that PNG and rewrite the
+  title/description, while keeping `X-Robots-Tag: noindex` and the canonical at "/".
 - **Every asset response funnels through `negotiateMarkdown()`** at the end of
   fetch: it sets `Vary: Accept`, the agent-discovery `Link` header on HTML, and
   cache headers (immutable for /assets/, a week for stable media). Because of
@@ -89,11 +100,21 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
 
 ## Tests
 
-Miniflare boots the real `src/index.js` with in-memory D1; the schema is parsed out
-of `schema.sql` at test time (single source of truth). The harness must mirror
+Miniflare exercises the real Worker with in-memory D1; the schema is parsed out of
+`schema.sql` at test time (single source of truth). The harness must mirror
 production's `run_worker_first` via
 `routerConfig: { has_user_worker: true, invoke_user_worker_ahead_of_assets: true }`
 or every /api/* route 404s.
+
+Because the Worker now imports an npm package with WASM (`workers-og`), Miniflare
+cannot load `src/index.js` directly. The suite runs against a wrangler-produced
+bundle instead: `npm test` builds it first (`pretest` -> `npm run build:worker` ->
+`.wrangler/test-build/`), and `test/harness.mjs` points Miniflare at that bundle with
+a `CompiledWasm` module rule (and rebuilds it if you run a single test file directly).
+Every test file imports `WORKER_SCRIPT` / `MODULE_RULES` / `ensureBundle` from that
+harness. The per-scan verdict lives in `shared/scan-core.mjs` (imported by the Worker,
+mirrored by `public/script.js`); `test/scan-core.test.js` guards that they stay in
+sync.
 
 ## Deploys and data
 
