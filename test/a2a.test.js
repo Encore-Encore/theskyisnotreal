@@ -54,7 +54,7 @@ for (const path of ["/.well-known/agent-card.json", "/.well-known/agent.json"]) 
     assert.equal(card.url, `${ORIGIN}/a2a`, "url is absolute + points at /a2a");
     assert.equal(card.preferredTransport, "JSONRPC");
     assert.ok(Array.isArray(card.skills) && card.skills.length > 0, "has skills");
-    assert.equal(card.skills[0].id, "sky-scan");
+    assert.equal(card.skills[0].id, "deception-scan");
     assert.ok(card.protocolVersion, "declares protocolVersion");
   });
 }
