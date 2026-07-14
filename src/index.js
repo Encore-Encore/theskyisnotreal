@@ -1168,6 +1168,8 @@ function renderAdmin(stats) {
 <html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <title>Admin snapshot · the sky is not real</title>
 <style>
   :root { color-scheme: dark; }
