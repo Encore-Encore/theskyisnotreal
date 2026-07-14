@@ -25,6 +25,8 @@ Highlights:
 - **Deception Detector**: a fake sky scan that always concludes *FAKE* with randomized
   confidence, diagnosis, and metrics (plus a rare ~2% "REAL?!" fake-out). `/api/geo`
   localizes it (the "scanning the sky over `<city>`" line) and zooms a little world map.
+  A public "skies scanned" counter and a live feed of the last 5 scans (coarse city +
+  verdict, each linking to its shareable card) sit alongside it.
 - **Shareable results**: each scan gets a short id at a clean path
   (`theskyisnotreal.com/s/<id>`). The id is a *seed* that deterministically reproduces the
   exact result, so a shared link shows the sharer's verdict: no lookup, nothing stored.
@@ -122,8 +124,6 @@ npm run deploy     # = wrangler deploy
 
 ## Roadmap
 
-- **Public counters**: the `scans` table already records every detection; surface a live
-  "skies scanned" counter on the page (today those numbers are admin-only).
 - **House ads / server-side ad config**: the Worker fronts every request, so ad rotation
   can move server-side without re-architecting.
 

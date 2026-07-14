@@ -37,8 +37,13 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
    surveillance framing: "Scanning the sky over <city>", never "We see you in
    <city>".
 4. **PII discipline**: subscriber emails exist only in D1 and the Access-gated
-   admin. Scans store coarse edge geo (city/region/country), never IPs. Do not log,
-   cache, or expose either on any new surface.
+   admin; never log, cache, or expose them. Scans store coarse edge geo
+   (city/region/country) plus the scan seed, never IPs. The public scan counter
+   (`/api/stats`) and recent-scans feed (`/api/scans/recent`) DO expose the total
+   count and the last few scans' coarse city + reproduced verdict, a deliberate
+   product choice kept to city-level, never IPs or emails. Do not widen what is
+   exposed (finer geo, IPs, emails) without an equally deliberate decision, and keep
+   the framing about scanned skies, not watched people (see rule 3).
 
 ## Subagents (use them)
 
