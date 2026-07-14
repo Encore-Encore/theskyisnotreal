@@ -31,12 +31,18 @@ files. You produce a findings list and run the tests. Be specific and concrete.
    personal routes (`/api/geo`, `/api/scan`, `/admin`, `/api/admin/stats`) must set
    `Cache-Control: no-store`.
 
-3. **Security.** `/admin` and `/api/admin/stats` must be gated by the Access check and
-   **fail closed** (respond 503, not open) when `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` are
-   unset or the JWT is invalid. Subscriber PII must never be exposed by default. Inputs
-   must be validated (email regex plus length cap). D1 queries must be parameterized
-   (bind, never string interpolation), with `ON CONFLICT` dedup. No secrets or full PII
-   in logs.
+3. **Security & PII.** `/admin` and `/api/admin/stats` must be gated by the Access check
+   and **fail closed** (respond 503, not open) when `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD`
+   are unset or the JWT is invalid. Subscriber emails and IP addresses must NEVER be
+   exposed or logged. The public scan surfaces DO expose data, by deliberate design
+   (CLAUDE.md rule 4), and are NOT leaks: the total scan count (`/api/stats`); and, for
+   the recent feed (`/api/scans/recent`) and each `/s/<id>`, a scan's coarse
+   city/region/country, its reproduced verdict + confidence, the share seed, its
+   timestamp, and a rounded (~1km) city-centroid lat/lon for the map zoom. Do not flag
+   those. DO flag any exposure beyond that (emails, IPs, precise/device geo, or other
+   scan fields). Inputs must be validated (email regex + length cap; the scan seed
+   shape). D1 queries must be parameterized (bind, never string interpolation), with
+   `ON CONFLICT` dedup on subscribers. No secrets or full PII in logs.
 
 4. **Agent surfaces stay consistent.** The agent-facing endpoints, the agent card
    (`/.well-known/agent-card.json` / A2A), `/.well-known/api-catalog`, `llms.txt`, the
