@@ -181,8 +181,8 @@ function agentCard(url) {
     defaultOutputModes: ["text/plain"],
     skills: [
       {
-        id: "sky-scan",
-        name: "Sky reality scan",
+        id: "deception-scan",
+        name: "Deception Detector scan",
         description:
           "Analyzes a location or claim and returns a satirical verdict on the " +
           "sky's authenticity. Entertainment only; the sky is, in fact, probably real.",
@@ -550,6 +550,11 @@ async function htmlToMarkdown(html, pageUrl) {
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n[ \t]+/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
+    // A <br> inside a heading (e.g. the hero <h1>the sky<br>is not real</h1>)
+    // otherwise splits the heading across two lines and demotes the second half
+    // to body text. Headings are single-line in Markdown, so re-join a heading
+    // line that is followed by a single newline and more text.
+    .replace(/^(#{1,6} .*)\n(?!\n)(\S.*)/gm, "$1 $2")
     .trim();
 
   const yaml = (s) => JSON.stringify(s.replace(/\s+/g, " ").trim());

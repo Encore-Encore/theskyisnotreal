@@ -31,7 +31,7 @@ const FIXTURE = `<!doctype html>
     <div class="watcher">SURVEILLANCE</div>
     <aside aria-label="Advertisement"><ins class="adsbygoogle">ad</ins></aside>
     <main>
-      <h1>Main Heading</h1>
+      <h1>Main<br />Heading</h1>
       <p>A paragraph with <strong>bold</strong> and <em>italic</em> and a
         <a href="/next">relative link</a>.</p>
       <blockquote>Quoted wisdom.</blockquote>
@@ -113,7 +113,7 @@ test("markdown body: frontmatter + converted structure, no HTML residue", async 
   assert.match(md, /description: "A fixture page\."/);
   assert.match(md, /image: "https:\/\/example\.com\/img\.png"/);
 
-  assert.match(md, /^# Main Heading$/m, "h1 → # heading");
+  assert.match(md, /^# Main Heading$/m, "h1 → # heading, <br> inside it collapses to one line");
   assert.match(md, /\*\*bold\*\*/, "strong → bold");
   assert.match(md, /\*italic\*/, "em → italic");
   assert.match(md, /> Quoted wisdom\./, "blockquote → >");
@@ -138,6 +138,7 @@ test("real homepage converts cleanly (no tag/entity residue)", async () => {
   assert.equal(res.headers.get("Content-Type"), "text/markdown; charset=utf-8");
   const md = await res.text();
   assert.match(md, /title: "the sky is not real"/);
+  assert.match(md, /^# the sky is not real$/m, "hero h1 stays one line despite its <br>");
   assert.match(md, /## Six things they don't want you to notice/);
   assert.doesNotMatch(md, /<[a-z/!][^>]*>/i, "no leftover HTML tags");
   assert.doesNotMatch(md, /&(gt|lt|amp|quot|nbsp);/, "no undecoded entities");
