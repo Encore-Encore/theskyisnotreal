@@ -1,16 +1,15 @@
 name: Uptime
 
-# Lightweight synthetic check of production every 15 minutes, independent of
-# deploys. This is the net that catches outages BETWEEN deploys (a Cloudflare
-# setting that blocks the site, an expired cert, an origin 5xx), which the
-# post-deploy smoke check cannot see. Curl-only, so it is cheap to run this often.
-# A failed run is the alert: GitHub emails the person who last edited this file on a
-# scheduled-workflow failure; wire Slack/PagerDuty if you want a push. For sub-minute,
-# edge-run monitoring, Cloudflare Health Checks (this account is Enterprise) is even
-# more robust.
+# Lightweight synthetic check of production once a day, independent of deploys. This
+# is the net that catches outages BETWEEN deploys (a Cloudflare setting that blocks
+# the site, an expired cert, an origin 5xx), which the post-deploy smoke check cannot
+# see. Curl-only, so it is cheap. A failed run is the alert: GitHub emails the person
+# who last edited this file on a scheduled-workflow failure; wire Slack/PagerDuty if
+# you want a push. For faster, edge-run monitoring, Cloudflare Health Checks (this
+# account is Enterprise) is an option. Run it any time with workflow_dispatch.
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "0 12 * * *" # daily at 12:00 UTC
   workflow_dispatch:
 
 concurrency:

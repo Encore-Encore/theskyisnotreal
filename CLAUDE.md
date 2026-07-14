@@ -128,8 +128,8 @@ run-a-scan, shared `/s/<id>` reproduce + OG image, trust pages, signup, admin ga
 tagged `@smoke` are read-only (no D1 writes) and also run against production. CI:
 `.github/workflows/e2e.yml` runs the full suite on PRs; `smoke.yml` runs the `@smoke`
 subset against live theskyisnotreal.com after each push to main (post-deploy check);
-`uptime.yml` is a lightweight curl probe of prod every 15 minutes (catches outages
-between deploys, e.g. the account-wide Access deny). The `test-site` skill and
+`uptime.yml` is a lightweight curl probe of prod once a day (catches outages between
+deploys, e.g. the account-wide Access deny; `workflow_dispatch` for an on-demand run). The `test-site` skill and
 `site-tester` subagent run the E2E suite on demand.
 
 ## Deploys and data
