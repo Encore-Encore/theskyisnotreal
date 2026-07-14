@@ -1,0 +1,50 @@
+name: Uptime
+
+# Lightweight synthetic check of production every 15 minutes, independent of
+# deploys. This is the net that catches outages BETWEEN deploys (a Cloudflare
+# setting that blocks the site, an expired cert, an origin 5xx), which the
+# post-deploy smoke check cannot see. Curl-only, so it is cheap to run this often.
+# A failed run is the alert: GitHub emails the person who last edited this file on a
+# scheduled-workflow failure; wire Slack/PagerDuty if you want a push. For sub-minute,
+# edge-run monitoring, Cloudflare Health Checks (this account is Enterprise) is even
+# more robust.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe production routes
+        run: |
+          base="https://theskyisnotreal.com"
+          fail=0
+          check() {
+            path="$1"; want_ct="$2"; needle="$3"
+            code=$(curl -sS --max-time 20 -o /tmp/body -w '%{http_code}' -D /tmp/hdr "$base$path" || echo 000)
+            ct=$(tr -d '\r' < /tmp/hdr | grep -i '^content-type:' | head -1 || true)
+            if [ "$code" != "200" ]; then echo "FAIL  $path  ->  HTTP $code"; fail=1; return; fi
+            if [ -n "$want_ct" ] && ! printf '%s' "$ct" | grep -qi "$want_ct"; then
+              echo "FAIL  $path  ->  $ct (want $want_ct)"; fail=1; return
+            fi
+            if [ -n "$needle" ] && ! grep -qi "$needle" /tmp/body; then
+              echo "FAIL  $path  ->  missing '$needle'"; fail=1; return
+            fi
+            echo "ok    $path  ($code)"
+          }
+          # Homepage 200 + marker catches the account-wide Access deny (returns 403)
+          # and Worker exceptions (5xx). The OG image confirms the render path is live.
+          check "/"                 "text/html"  "the sky is not real"
+          check "/about"            "text/html"  "satire"
+          check "/s/uptime/og.png"  "image/png"  ""
+          if [ "$fail" != "0" ]; then
+            echo "::error::Production uptime check failed for theskyisnotreal.com"
+            exit 1
+          fi
+          echo "All production checks passed."
