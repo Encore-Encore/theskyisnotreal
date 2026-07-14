@@ -7,6 +7,7 @@ description: >-
   than hand-writing test config.
 tools: Read, Edit, Write, Bash
 model: sonnet
+effort: medium
 ---
 
 You write and maintain the integration test suite for the **theskyisnotreal.com**
