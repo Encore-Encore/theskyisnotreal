@@ -46,44 +46,27 @@ function escapeHtml(s) {
 // 1200x630, deep-space palette + cyan accent to match the site.
 function cardHtml(id, scan) {
   const diag = escapeHtml(scan.diag);
-  const rec = escapeHtml(scan.rec);
   const conf = escapeHtml(scan.conf);
-  const artifacts = escapeHtml(scan.artifacts);
-  const tex = escapeHtml(scan.tex);
   const permalink = "/s/" + escapeHtml(id);
   return `
-  <div style="display:flex;flex-direction:column;width:1200px;height:630px;padding:64px 76px;background:linear-gradient(150deg,#0b1026 0%,#05060a 55%);font-family:Inter;color:#e8ecf5;justify-content:space-between;">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;">
-        <div style="display:flex;width:36px;height:36px;border:3px solid #8a93a8;border-radius:8px;align-items:center;justify-content:center;margin-right:18px;">
-          <div style="display:flex;width:44px;height:3px;background:#4dd6ff;transform:rotate(-45deg);"></div>
-        </div>
-        <div style="display:flex;font-size:32px;font-weight:700;color:#cfd6e6;">the sky is not real</div>
-      </div>
-      <div style="display:flex;align-items:center;border:2px solid rgba(77,214,255,0.4);border-radius:999px;padding:10px 22px;">
+  <div style="display:flex;flex-direction:column;width:1200px;height:630px;padding:84px;background:linear-gradient(150deg,#0b1026 0%,#05060a 58%);font-family:Inter;color:#e8ecf5;justify-content:space-between;">
+    <div style="display:flex;align-items:center;">
+      <div style="display:flex;font-size:34px;font-weight:700;color:#cfd6e6;">the sky is not real</div>
+      <div style="display:flex;align-items:center;border:2px solid rgba(77,214,255,0.4);border-radius:999px;padding:11px 24px;margin-left:auto;">
         <div style="display:flex;width:12px;height:12px;border-radius:999px;background:#4dd6ff;margin-right:12px;"></div>
         <div style="display:flex;font-size:22px;font-weight:700;letter-spacing:3px;color:#8fe6ff;">DECEPTION DETECTOR · ONLINE</div>
       </div>
     </div>
 
     <div style="display:flex;flex-direction:column;">
-      <div style="display:flex;font-size:30px;font-weight:700;letter-spacing:14px;color:#8a93a8;">VERDICT</div>
-      <div style="display:flex;font-size:200px;font-weight:700;line-height:1;color:#4dd6ff;">FAKE</div>
-      <div style="display:flex;align-items:center;margin-top:26px;">
-        <div style="display:flex;width:360px;height:14px;border-radius:999px;background:rgba(255,255,255,0.10);">
-          <div style="display:flex;width:${conf}%;height:14px;border-radius:999px;background:#4dd6ff;"></div>
-        </div>
-        <div style="display:flex;font-size:36px;font-weight:700;color:#e8ecf5;margin-left:26px;">${conf}% synthetic</div>
-      </div>
-      <div style="display:flex;font-size:24px;color:#6a7488;margin-top:18px;">${artifacts} render artifacts · 0 real clouds found · ${tex} sky texture res</div>
+      <div style="display:flex;font-size:30px;font-weight:700;letter-spacing:16px;color:#8a93a8;margin-bottom:4px;">VERDICT</div>
+      <div style="display:flex;font-size:236px;font-weight:700;line-height:0.9;color:#4dd6ff;">FAKE</div>
+      <div style="display:flex;font-size:40px;font-weight:700;color:#e8ecf5;margin-top:20px;">${conf}% synthetic</div>
     </div>
 
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-      <div style="display:flex;flex-direction:column;">
-        <div style="display:flex;font-size:32px;color:#aeb6c8;">Diagnosis: ${diag}</div>
-        <div style="display:flex;font-size:23px;color:#7c86a0;margin-top:10px;">${rec}</div>
-      </div>
-      <div style="display:flex;font-size:28px;font-weight:700;color:#8fe6ff;">${permalink}</div>
+    <div style="display:flex;align-items:center;">
+      <div style="display:flex;font-size:30px;color:#aeb6c8;">Diagnosis: ${diag}</div>
+      <div style="display:flex;font-size:28px;font-weight:700;color:#8fe6ff;margin-left:auto;">${permalink}</div>
     </div>
   </div>`;
 }
