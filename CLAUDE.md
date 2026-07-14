@@ -42,6 +42,9 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
 - **worker-reviewer**: review any `src/index.js` change before shipping (read-only).
 - **miniflare-test-writer**: add or update tests whenever a route changes; it knows
   the harness.
+- **page-consistency**: when a page is added, removed, or its head/footer nav
+  changes, keep the discovery surfaces in sync (`sitemap.xml`, `llms.txt`, footer
+  nav, per-page canonical/description/OG). Enforces the "Adding a page" checklist.
 
 ## Architecture
 
