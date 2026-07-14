@@ -156,7 +156,7 @@
 })();
 
 /* ============================================================
-   Sky scanner, fake "is the sky real?" analysis + shareable verdict
+   Deception Detector, fake "is the sky real?" analysis + shareable verdict
    ============================================================ */
 (function () {
   "use strict";
@@ -481,8 +481,9 @@
     document.getElementById("skyShare").addEventListener("click", share);
   }
 
-  // Location line, city+region, else country, else redacted. Not seeded: shows
-  // whoever is currently viewing (so a shared link says "we see YOU").
+  // Location line: city+region, else country, else a generic fallback. Not seeded,
+  // so it shows whoever is currently viewing (a shared link reflects the visitor's
+  // own local sky, not the original scanner's).
   function geoLabel() {
     var parts = geo ? [geo.city, geo.region].filter(Boolean) : [];
     if (!parts.length && geo && geo.country) parts.push(geo.country);
@@ -604,7 +605,7 @@
       .then(function (r) {
         if (r.status === 200 && r.data && r.data.ok) {
           form.reset();
-          setMsg("You're on the list, welcome to the resistance.", "is-ok");
+          setMsg("You're on the list, welcome to the revolution.", "is-ok");
         } else if (r.status === 400 && r.data && r.data.error === "invalid_email") {
           // Server rejected something the client let through, surface it, don't drop.
           markInvalid();
@@ -670,6 +671,8 @@
     loaded = true;
     clearTimeout(fallback);
     events.forEach(function (e) { window.removeEventListener(e, loadAds, opts); });
+    // Trust pages ship the loader eagerly in their <head>; never inject a second copy.
+    if (document.querySelector('script[src*="adsbygoogle.js"]')) return;
     var s = document.createElement("script");
     s.async = true;
     s.crossOrigin = "anonymous";
