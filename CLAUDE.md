@@ -1,0 +1,103 @@
+# CLAUDE.md
+
+theskyisnotreal.com: a satirical "the sky is fake" conspiracy site. Plain HTML/CSS/JS
+(no framework) in `public/`, fronted by a single-file Cloudflare Worker
+(`src/index.js`) with a D1 database. The Worker is deliberately zero-dependency
+(HTMLRewriter, WebCrypto, D1 bindings only). The joke must stay unmistakably a joke.
+
+## Commands
+
+```bash
+npm run dev                         # wrangler dev (build.js runs first automatically)
+npm test                            # node:test + Miniflare, exercises the REAL Worker
+node --test test/subscribe.test.js  # one test file
+npm run build                       # build.js: public/ -> dist/ with hashed /assets/
+npm run deploy                      # manual deploy; normally unneeded (see Deploys)
+```
+
+## Hard rules
+
+1. **No em dashes, ever, anywhere**: not in copy, code, comments, or docs. En dashes
+   as sentence connectors are banned too. Hyphens and the middot `·` are fine.
+   Rewrite with a comma, colon, semicolon, period, or parentheses. Before finishing
+   any change, check the repo with the Grep tool or `rg -n '\x{2014}|\x{2013}'`
+   (this file deliberately never spells the characters, so the check cannot flag
+   itself).
+2. **The satire stays unmistakable.** The trust pages (`about.html`,
+   `disclaimer.html`, `privacy.html`, `public/llms.txt`) keep their explicit "this
+   is satire, the sky is real" disclaimers; never weaken or delete them. Punch at
+   the conspiracy format, never at real groups of people.
+3. **Naming canon**: the on-page device is the **"Deception Detector"** (never "Sky
+   Scanner"; trademark risk vs Skyscanner). The cabal is **"Big Sky"**. No
+   surveillance framing: "Scanning the sky over <city>", never "We see you in
+   <city>".
+4. **PII discipline**: subscriber emails exist only in D1 and the Access-gated
+   admin. Scans store coarse edge geo (city/region/country), never IPs. Do not log,
+   cache, or expose either on any new surface.
+
+## Subagents (use them)
+
+- **copy-guardian**: run every user-facing copy change through it (public/*.html,
+  scanner strings in `public/script.js`, meta/OG/title text, llms.txt).
+- **worker-reviewer**: review any `src/index.js` change before shipping (read-only).
+- **miniflare-test-writer**: add or update tests whenever a route changes; it knows
+  the harness.
+
+## Architecture
+
+- **`public/` is the source; `dist/` is generated. Never edit `dist/`.** `build.js`
+  copies `public/` to `dist/`, content-hashes `styles.css` + `script.js` into
+  `/assets/<name>.<hash>.<ext>`, and rewrites HTML references. Wrangler runs it
+  before dev and deploy.
+- HTML must reference the bundles exactly as `"/styles.css"` and `"/script.js"`
+  (quoted absolute paths); the build rewrites only those exact strings.
+- **Routing order in `src/index.js` matters**: www->apex 301, /api/subscribe,
+  /api/geo, /api/scan, /admin + /api/admin/stats (Access-gated), then a /api/* 404
+  catch-all. New API endpoints go ABOVE the catch-all. After that: agent-card
+  well-knowns, /a2a, /.well-known/api-catalog, `*.md` twins, /s/* permalinks,
+  static assets.
+- **Every asset response funnels through `negotiateMarkdown()`** at the end of
+  fetch: it sets `Vary: Accept`, the agent-discovery `Link` header on HTML, and
+  cache headers (immutable for /assets/, a week for stable media). Because of
+  `run_worker_first: true`, the Worker is the authoritative place for caching.
+- **Agent/AEO surfaces**: `public/llms.txt`; Markdown twins of every page (forced
+  via `/<page>.md`, or `Accept: text/markdown` on the HTML path); the A2A agent
+  card (`/.well-known/agent-card.json`, legacy `agent.json`) with its JSON-RPC
+  endpoint at `/a2a` (also advertised via a DNS-AID record, notes in
+  `dns/dns-aid.md`); an RFC 9727 api-catalog. `htmlToMarkdown()` strips page chrome
+  via the `drop` selector list in `src/index.js`; new decorative or interactive
+  sections usually need adding there.
+- **Admin fails closed**: without `ACCESS_TEAM_DOMAIN` + `ACCESS_AUD` it returns
+  503. The Worker verifies the Access JWT itself even though Cloudflare's edge also
+  gates the route; keep that defense-in-depth. (Both vars are committed in
+  `wrangler.jsonc`; they are not secrets.)
+- **/s/<id> is stateless**: the id is a seed the client uses to reproduce a scan.
+  Served as the homepage with `X-Robots-Tag: noindex`; reproduced scans never
+  beacon to /api/scan.
+
+## Adding a page
+
+1. `public/<page>.html` with canonical, meta description, and OG tags; reference
+   `"/styles.css"` and `"/script.js"` exactly as written here.
+2. Update footer nav on sibling pages, `public/sitemap.xml`, and `public/llms.txt`.
+3. Verify the automatic Markdown twin (`/<page>.md`) reads sanely; extend the
+   `drop` list if new chrome leaks in.
+4. Copy goes through copy-guardian; if the Worker changed, add tests.
+
+## Tests
+
+Miniflare boots the real `src/index.js` with in-memory D1; the schema is parsed out
+of `schema.sql` at test time (single source of truth). The harness must mirror
+production's `run_worker_first` via
+`routerConfig: { has_user_worker: true, invoke_user_worker_ahead_of_assets: true }`
+or every /api/* route 404s.
+
+## Deploys and data
+
+- Every push to `main` auto-deploys via Cloudflare Workers Builds. GitHub CI runs
+  the tests but does NOT gate the deploy. Never push unfinished work to `main`;
+  branch and PR instead.
+- D1 schema changes: `wrangler d1 execute theskyisnotreal-db --file=schema.sql`
+  (add `--remote` for prod). Statements are `IF NOT EXISTS`.
+- Local secrets go in `.dev.vars` (git-ignored; see `.dev.vars.example`). None are
+  required today.
