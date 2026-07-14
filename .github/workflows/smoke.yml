@@ -1,0 +1,48 @@
+name: Prod smoke
+
+# After a merge to main, Cloudflare Workers Builds deploys the Worker. This runs
+# the read-only @smoke subset against LIVE theskyisnotreal.com so a deploy that
+# breaks production fails loudly here. The smoke tests never write to prod D1
+# (no signup / no scan beacon). A red run is the alert; wire it to Slack/email via
+# branch/notification settings if you want a push.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # allow manual re-runs
+
+concurrency:
+  group: prod-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Workers Builds deploys asynchronously after the push. Give it a head start,
+      # then wait until the site is reachable before smoking it.
+      - name: Wait for deploy to be live
+        run: |
+          sleep 60
+          for i in $(seq 1 40); do
+            if curl -fsS -o /dev/null https://theskyisnotreal.com/; then
+              echo "prod is reachable"; exit 0
+            fi
+            echo "waiting for prod... ($i)"; sleep 15
+          done
+          echo "prod did not become reachable in time" >&2; exit 1
+      - run: npm run e2e:smoke
+        env:
+          BASE_URL: https://theskyisnotreal.com
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: smoke-report
+          path: playwright-report/
+          retention-days: 7
