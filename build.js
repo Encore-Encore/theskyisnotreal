@@ -45,15 +45,24 @@ for (const [file, base, ext] of [
 
 // Repoint HTML references (matched with surrounding quotes so we only touch the
 // href="/styles.css" / src="/script.js" attributes, never a stray substring).
-for (const f of readdirSync(OUT)) {
-  if (!f.endsWith(".html")) continue;
-  const p = join(OUT, f);
-  let html = readFileSync(p, "utf8");
-  for (const [from, to] of Object.entries(rewrites)) {
-    html = html.split(`"${from}"`).join(`"${to}"`);
+// Walk the whole tree so nested pages (e.g. /evidence/*) get rewritten too, not
+// just the ones at the dist root.
+function rewriteHtml(dir) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      rewriteHtml(p);
+      continue;
+    }
+    if (!entry.name.endsWith(".html")) continue;
+    let html = readFileSync(p, "utf8");
+    for (const [from, to] of Object.entries(rewrites)) {
+      html = html.split(`"${from}"`).join(`"${to}"`);
+    }
+    writeFileSync(p, html);
   }
-  writeFileSync(p, html);
 }
+rewriteHtml(OUT);
 
 console.log(
   "build → dist:",
