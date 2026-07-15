@@ -643,9 +643,11 @@
 })();
 
 /* ============================================================
-   Ad slots, only occupy space when an ad actually fills. AdSense sets
-   data-ad-status="filled" | "unfilled" on the <ins> once it resolves (async);
-   mirror that onto the .ad-slot so unfilled slots collapse to nothing.
+   Ad slots, only occupy space when an ad actually fills. Slots start collapsed
+   (see styles.css); AdSense sets data-ad-status="filled" | "unfilled" on the
+   <ins> once it resolves (async). We reveal a slot only when it fills, so a slow
+   or unfilled response never reserves space and then yanks it back (which showed
+   up as a jump near the top of the page on load).
    ============================================================ */
 (function () {
   "use strict";
@@ -654,8 +656,8 @@
     var slot = ins.closest(".ad-slot");
     if (!slot) return;
     var status = ins.getAttribute("data-ad-status");
-    if (status === "unfilled") slot.classList.add("ad-slot--empty");
-    else if (status === "filled") slot.classList.remove("ad-slot--empty");
+    if (status === "filled") slot.classList.add("ad-slot--filled");
+    else if (status === "unfilled") slot.classList.remove("ad-slot--filled");
   }
 
   var units = document.querySelectorAll(".ad-slot ins.adsbygoogle");

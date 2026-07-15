@@ -22,7 +22,7 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scrollbar-gutter: stable; }
 
 body {
   min-height: 100vh;
@@ -877,11 +877,18 @@ section {
   display: block;
   width: 100%;
 }
-/* Take up space only when there's an ad. AdSense sets data-ad-status="unfilled"
-   on the <ins> when it has nothing to serve; `script.js` mirrors that onto the
-   slot as .ad-slot--empty so the whole slot (margins too) collapses to nothing. */
-.ad-slot--empty { display: none; margin: 0; }
-ins.adsbygoogle[data-ad-status="unfilled"] { display: none; }
+/* Take up space only when an ad actually fills. A slot stays collapsed to zero
+   footprint (no height, no margins) until AdSense confirms a fill: it sets
+   data-ad-status="filled" on the <ins>, and `script.js` mirrors that onto the
+   slot as .ad-slot--filled. The <ins> keeps its full width the whole time so the
+   responsive unit can still size itself; only the slot's height is held at 0.
+   Collapsing up front (rather than reserving space and then removing it when the
+   response comes back "unfilled") avoids a jump near the top of the page on load. */
+.ad-slot:not(.ad-slot--filled) {
+  max-height: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
 
 /* ---------- Footer ---------- */
 .footer {
