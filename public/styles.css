@@ -348,6 +348,37 @@ section {
   letter-spacing: 0.02em;
 }
 
+/* Slim horizontal band variant: the four stats as one compact strip rather
+   than four chunky boxes (breaks up the card rhythm elsewhere on the page). */
+.stats--band {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  max-width: 780px;
+  margin-left: auto;
+  margin-right: auto;
+  background: rgba(11, 16, 38, 0.4);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.stats--band .stat {
+  flex: 1 1 150px;
+  padding: 16px 14px;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+}
+.stats--band .stat:first-child { border-left: 0; }
+.stats--band .stat__num { font-size: clamp(1.4rem, 3vw, 1.9rem); }
+.stats--band .stat__label { margin-top: 4px; font-size: 0.78rem; }
+@media (max-width: 620px) {
+  .stats--band .stat { flex-basis: 50%; }
+  .stats--band .stat:nth-child(odd) { border-left: 0; }
+  .stats--band .stat:nth-child(n + 3) { border-top: 1px solid var(--border); }
+}
+
 /* ---------- Deception Detector ---------- */
 .scanner__panel {
   position: relative;

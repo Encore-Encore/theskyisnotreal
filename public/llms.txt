@@ -4,11 +4,12 @@
 
 ## Pages
 
-- [Home](https://theskyisnotreal.com/index.md): the manifesto, the "field brief," the "six things" dossier, testimonials, and the Lore FAQ (who Big Sky is, what's "actually up there," etc.)
+- [Home](https://theskyisnotreal.com/index.md): the manifesto, the "field brief," testimonials, and the Lore FAQ (who Big Sky is, what's "actually up there," etc.)
 - [About](https://theskyisnotreal.com/about.md): what this site is (satire) and why it exists
-- [The Evidence Files](https://theskyisnotreal.com/evidence.md): a satirical dossier hub linking the two exhibits below
+- [The Evidence Files](https://theskyisnotreal.com/evidence.md): a satirical dossier hub linking the three exhibits below
 - [Exhibit A: Known Sky-Rendering Glitches](https://theskyisnotreal.com/evidence/glitches.md): a joke "bug tracker" for the sky (sunsets, clouds, the moon, rainbows), each with the real science
 - [Exhibit B: Firmament Maintenance Memo (Leaked)](https://theskyisnotreal.com/evidence/memo.md): a fictional "internal memo" about sky maintenance, annotated with the real astronomy
+- [Exhibit C: Six Things They Don't Want You to Notice](https://theskyisnotreal.com/evidence/dossier.md): the old homepage dossier, six everyday "tells" (the blue, clouds, the sun, birds, night), each answered with the real science
 - [Disclaimer](https://theskyisnotreal.com/disclaimer.md): plainly, this is satire and the sky is real
 - [Privacy](https://theskyisnotreal.com/privacy.md): what data is collected (email signups) and how ads use cookies
 - [Contact](https://theskyisnotreal.com/contact.md): how to get in touch

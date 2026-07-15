@@ -142,7 +142,7 @@ test("real homepage converts cleanly (no tag/entity residue)", async () => {
   const md = await res.text();
   assert.match(md, /title: "the sky is not real"/);
   assert.match(md, /^# the sky is not real$/m, "hero h1 stays one line despite its <br>");
-  assert.match(md, /## Six things they don't want you to notice/);
+  assert.match(md, /## The sky is not real: the field brief/, "a real H2 section heading converts");
   assert.doesNotMatch(md, /<[a-z/!][^>]*>/i, "no leftover HTML tags");
   assert.doesNotMatch(md, /&(gt|lt|amp|quot|nbsp);/, "no undecoded entities");
 });
