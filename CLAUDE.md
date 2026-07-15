@@ -95,9 +95,16 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
   via `/<page>.md`, or `Accept: text/markdown` on the HTML path); the A2A agent
   card (`/.well-known/agent-card.json`, legacy `agent.json`) with its JSON-RPC
   endpoint at `/a2a` (also advertised via a DNS-AID record, notes in
-  `dns/dns-aid.md`); an RFC 9727 api-catalog. `htmlToMarkdown()` strips page chrome
-  via the `drop` selector list in `src/index.js`; new decorative or interactive
-  sections usually need adding there.
+  `dns/dns-aid.md`); an RFC 9727 api-catalog; `public/robots.txt` declares
+  Content Signals (`search`, `ai-input`, `ai-train` all `yes`). `htmlToMarkdown()`
+  strips page chrome via the `drop` selector list in `src/index.js`; new decorative
+  or interactive sections usually need adding there.
+- **Structured data (SEO/AEO)**: every content page carries a `schema.org`
+  JSON-LD block in its `<head>`. The homepage is a `WebSite`; the trust pages are
+  `AboutPage` / `ContactPage` / `WebPage`; the Evidence pages
+  (`public/evidence/`) are `CollectionPage` / `Article`, each with a
+  `BreadcrumbList`. Keep the satire unmistakable inside the schema too: every
+  `description` states it is parody and the sky is real (rule 2).
 - **Admin fails closed**: without `ACCESS_TEAM_DOMAIN` + `ACCESS_AUD` it returns
   503. The Worker verifies the Access JWT itself even though Cloudflare's edge also
   gates the route; keep that defense-in-depth. (Both vars are committed in
@@ -110,7 +117,8 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
 
 ## Adding a page
 
-1. `public/<page>.html` with canonical, meta description, and OG tags; reference
+1. `public/<page>.html` with canonical, meta description, OG tags, and a
+   `schema.org` JSON-LD block (satire-preserving `description`); reference
    `"/styles.css"` and `"/script.js"` exactly as written here.
 2. Update footer nav on sibling pages, `public/sitemap.xml`, and `public/llms.txt`.
 3. Verify the automatic Markdown twin (`/<page>.md`) reads sanely; extend the
