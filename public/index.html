@@ -80,6 +80,36 @@
         </div>
       </section>
 
+      <!-- ===== DECEPTION DETECTOR ===== -->
+      <section class="scanner" id="scan">
+        <p class="section-kicker reveal">Prove it yourself</p>
+        <h2 class="section-title reveal">Put the sky through our detector</h2>
+        <p class="scanner__counter reveal" id="skyCounter" hidden>
+          <strong class="scanner__counter-num" id="skyCounterNum">0</strong> skies scanned
+          <span class="scanner__counter-sub">· 0 confirmed real</span>
+        </p>
+        <div class="scanner__controls scanner__controls--top reveal">
+          <button class="btn btn--primary btn--lg" id="skyScan" type="button">Scan the sky</button>
+        </div>
+        <div class="scanner__panel reveal">
+          <div class="scanner__chip"><span class="scanner__dot"></span> deception detector · v2.5 · geolocation</div>
+          <div class="scanner__vp" id="skyVp" aria-hidden="true">
+            <div class="scanner__scanline"></div>
+            <div class="scanner__stat" id="skyStat">awaiting scan</div>
+          </div>
+          <div class="scanner__log" id="skyLog" role="status" aria-live="polite"></div>
+          <div id="skyRes"></div>
+          <div class="scanner__toast" id="skyToast">Link copied. The truth is spreading.</div>
+        </div>
+        <div class="scanner__feed reveal" id="skyFeed" hidden>
+          <div class="scanner__feed-head">
+            <span class="scanner__feed-title">Recently scanned skies</span>
+            <span class="scanner__feed-note">last 5</span>
+          </div>
+          <ul class="scanner__feed-list" id="skyFeedList"></ul>
+        </div>
+      </section>
+
       <!-- ===== THE BRIEF (deception) ===== -->
       <section class="truth" id="truth">
         <p class="section-kicker reveal">The Deception</p>
@@ -127,7 +157,32 @@
       <!-- ===== "EVIDENCE" STAT STRIP ===== -->
       <section class="evidence" id="evidence" aria-label="The evidence">
         <p class="section-kicker reveal">The Evidence</p>
-        <div class="stats">
+        <h2 class="section-title reveal">The exhibits, filed for inspection</h2>
+        <div class="cards">
+          <article class="card reveal">
+            <span class="card__index">Exhibit A</span>
+            <p>
+              <strong><a href="/evidence/glitches">Known Sky-Rendering Glitches</a></strong>
+              A bug tracker for the firmament: z-fighting sunsets, clouds that pop in, a
+              moon reused across every time zone.
+            </p>
+          </article>
+
+          <article class="card reveal">
+            <span class="card__index">Exhibit B</span>
+            <p>
+              <strong><a href="/evidence/memo">Firmament Maintenance Memo (Leaked)</a></strong>
+              An "internal" Big Sky memo on scheduled downtime, aurora deployments, and
+              eclipse rollbacks.
+            </p>
+          </article>
+        </div>
+
+        <div class="hero__actions reveal" style="justify-content:center;margin-top:30px;">
+          <a class="btn btn--ghost" href="/evidence">Open the Evidence Files →</a>
+        </div>
+
+        <div class="stats stats--band" style="margin-top:clamp(48px,7vw,80px)">
           <div class="stat reveal">
             <span class="stat__num" data-count="0">0</span>
             <span class="stat__label">real skies detected</span>
@@ -144,99 +199,6 @@
             <span class="stat__num" data-count="24" data-suffix="/7">24/7</span>
             <span class="stat__label">backdrop uptime</span>
           </div>
-        </div>
-      </section>
-
-      <!-- ===== DECEPTION DETECTOR ===== -->
-      <section class="scanner" id="scan">
-        <p class="section-kicker reveal">Prove it yourself</p>
-        <h2 class="section-title reveal">Put the sky through our detector</h2>
-        <p class="scanner__counter reveal" id="skyCounter" hidden>
-          <strong class="scanner__counter-num" id="skyCounterNum">0</strong> skies scanned
-          <span class="scanner__counter-sub">· 0 confirmed real</span>
-        </p>
-        <div class="scanner__controls scanner__controls--top reveal">
-          <button class="btn btn--primary btn--lg" id="skyScan" type="button">Scan the sky</button>
-        </div>
-        <div class="scanner__panel reveal">
-          <div class="scanner__chip"><span class="scanner__dot"></span> deception detector · v2.5 · geolocation</div>
-          <div class="scanner__vp" id="skyVp" aria-hidden="true">
-            <div class="scanner__scanline"></div>
-            <div class="scanner__stat" id="skyStat">awaiting scan</div>
-          </div>
-          <div class="scanner__log" id="skyLog" role="status" aria-live="polite"></div>
-          <div id="skyRes"></div>
-          <div class="scanner__toast" id="skyToast">Link copied. The truth is spreading.</div>
-        </div>
-        <div class="scanner__feed reveal" id="skyFeed" hidden>
-          <div class="scanner__feed-head">
-            <span class="scanner__feed-title">Recently scanned skies</span>
-            <span class="scanner__feed-note">last 5</span>
-          </div>
-          <ul class="scanner__feed-list" id="skyFeedList"></ul>
-        </div>
-      </section>
-
-      <!-- ===== THE DOSSIER (deeper manifesto) ===== -->
-      <section class="truth" id="dossier">
-        <p class="section-kicker reveal">The Dossier</p>
-        <h2 class="section-title reveal">Six things they don't want you to notice</h2>
-
-        <div class="cards">
-          <article class="card reveal">
-            <span class="card__index">01</span>
-            <p>
-              <strong>The blue never changes.</strong> Real gases scatter light in
-              chaotic, unpredictable ways. Yet the "sky" resolves to a suspiciously
-              consistent hex value, as if someone picked it in a color wheel and
-              hit save. Ask yourself: who owns that shade of blue?
-            </p>
-          </article>
-
-          <article class="card reveal">
-            <span class="card__index">02</span>
-            <p>
-              <strong>Clouds load in.</strong> Have you noticed how clouds seem to
-              "appear" as you look? That's not weather. That's a render distance.
-              The fog you see on the horizon is the edge of the world buffering.
-            </p>
-          </article>
-
-          <article class="card reveal">
-            <span class="card__index">03</span>
-            <p>
-              <strong>The sun follows you.</strong> Drive in any direction and it
-              keeps pace, a single light source anchored to the observer. This is
-              not how astronomy works. This is how a video game works.
-            </p>
-          </article>
-
-          <article class="card reveal">
-            <span class="card__index">04</span>
-            <p>
-              <strong>Birds take breaks.</strong> Look up on a busy day and count
-              them. Now look again an hour later. The counts never add up. The
-              flock is a looping animation, spawned to make the ceiling feel alive.
-            </p>
-          </article>
-
-          <article class="card reveal">
-            <span class="card__index">05</span>
-            <p>
-              <strong>Night is just the lights turning off.</strong> A "star" is a
-              pixel that forgot to dim. Constellations haven't moved in recorded
-              history because nobody's bothered to update the wallpaper since launch.
-            </p>
-          </article>
-
-          <article class="card reveal">
-            <span class="card__index">06</span>
-            <p>
-              <strong>Nobody has touched it.</strong> Trillions of humans, and not
-              one verified sample of "sky" in a lab. The one thing above us all,
-              and it conveniently stays exactly out of reach. Coincidence? Audit it.
-            </p>
-          </article>
         </div>
       </section>
 
@@ -268,6 +230,14 @@
               came back down. Suspicious. Very suspicious."
             </p>
             <p class="card__index" style="margin-top:16px">Celeste Nimbus, independent researcher</p>
+          </article>
+
+          <article class="card reveal">
+            <p class="pullquote">
+              "The rainbow ran the exact same colors in the exact same order. Twice.
+              Nobody nails a gradient like that without a saved preset."
+            </p>
+            <p class="card__index" style="margin-top:16px">Roy G. Biv, color-order analyst</p>
           </article>
         </div>
       </section>
