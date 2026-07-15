@@ -45,7 +45,8 @@ Highlights:
   (`build.js`) copies `public/` to `dist/` and content-hashes the CSS/JS into
   `dist/assets/` so they cache forever; wrangler runs it automatically before `dev` and
   `deploy`. Respects `prefers-reduced-motion`; installable (web manifest + full icon
-  set); SEO basics (sitemap, canonical, social share card).
+  set); SEO basics (sitemap, canonical, social share card, `schema.org` JSON-LD
+  structured data on every content page).
 - **AEO-friendly**: touches for answer engines and AI crawlers: Content Signals in
   `robots.txt`, `llms.txt`, a Markdown twin of every page (append `.md`, or send
   `Accept: text/markdown`), an RFC 9727 API catalog, and a satirical A2A agent
