@@ -17,8 +17,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "miniflare": "^4.20260701.0",
-    "wrangler": "^4.24.4"
+    "miniflare": "^5.20260918.0-alpha",
+    "wrangler": "^4.135.0"
   },
   "dependencies": {
     "workers-og": "^0.0.27"
