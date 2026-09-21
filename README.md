@@ -40,7 +40,9 @@ Highlights:
   scattering, cloud formation, orbital mechanics, and so on).
 - **Join the revolution**: email signup stored in D1 (`POST /api/subscribe`, deduped), an
   anonymous scan beacon (`POST /api/scan`: coarse city-level geo, no IP), and a
-  Cloudflare Access-gated `/admin` snapshot of both.
+  Cloudflare Access-gated `/admin` snapshot of both. Its scans explorer switches between
+  the last 20 scans, scans by country, and scans by city; click any country or city to
+  page through every scan recorded there.
 - **Fast & self-contained**: plain HTML/CSS/JS, no framework. The one build step
   (`build.js`) copies `public/` to `dist/` and content-hashes the CSS/JS into
   `dist/assets/` so they cache forever; wrangler runs it automatically before `dev` and
