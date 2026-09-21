@@ -132,11 +132,6 @@ Manual deploy, if ever needed:
 npm run deploy     # = wrangler deploy
 ```
 
-## Roadmap
-
-- **House ads / server-side ad config**: the Worker fronts every request, so ad rotation
-  can move server-side without re-architecting.
-
 ## License
 
 The code is [MIT](LICENSE). The jokes are not: the satirical copy, the logo and brand

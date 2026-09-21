@@ -2,9 +2,9 @@
  * theskyisnotreal.com, Cloudflare Worker
  *
  * The site is a static landing page served from ./public via the ASSETS
- * binding. This Worker sits in front of the assets so we have a place to add
- * dynamic behaviour later (a live "watchers online" counter, server-side ad
- * config, house-ad rotation, etc.) without re-architecting.
+ * binding. This Worker runs in front of the assets (run_worker_first) and owns
+ * the dynamic bits: the www->apex redirect, the /api/* endpoints, the
+ * Access-gated admin, the agent surfaces, and the per-scan OG cards.
  */
 import { ImageResponse } from "workers-og";
 import { reproduce } from "../shared/scan-core.mjs";
