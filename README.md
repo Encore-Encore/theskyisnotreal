@@ -108,7 +108,7 @@ dns/                    # DNS-AID agent-discovery record notes
 
 ## Develop
 
-Requires Node.js 18+.
+Requires Node.js 22+.
 
 ```bash
 npm install        # installs wrangler + miniflare + playwright

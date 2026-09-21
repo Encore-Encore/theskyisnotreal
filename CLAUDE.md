@@ -144,10 +144,13 @@ or every /api/* route 404s.
 Because the Worker now imports an npm package with WASM (`workers-og`), Miniflare
 cannot load `src/index.js` directly. The suite runs against a wrangler-produced
 bundle instead: `npm test` builds it first (`pretest` -> `npm run build:worker` ->
-`.wrangler/test-build/`), and `test/harness.mjs` points Miniflare at that bundle with
-a `CompiledWasm` module rule (and rebuilds it if you run a single test file directly).
-Every test file imports `WORKER_SCRIPT` / `MODULE_RULES` / `ensureBundle` from that
-harness. The per-scan verdict lives in `shared/scan-core.mjs` (imported by the Worker,
+`.wrangler/test-build/`), and `test/harness.mjs` points Miniflare at that bundle as an
+explicit module list, the entry module plus its `.wasm` files (and rebuilds it if you
+run a single test file directly). Miniflare 5 takes a new `workers: [...]` options
+shape, so every test file builds its instance with
+`createMiniflare({ ...workerSource(), ... })` from that harness: the familiar
+single-worker options, converted by Miniflare's `convertV4MiniflareOptions()`. The
+per-scan verdict lives in `shared/scan-core.mjs` (imported by the Worker,
 mirrored by `public/script.js`); `test/scan-core.test.js` guards that they stay in
 sync.
 

@@ -13,8 +13,8 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { Miniflare, Response } from "miniflare";
-import { WORKER_SCRIPT, MODULE_RULES, ensureBundle } from "./harness.mjs";
+import { Response } from "miniflare";
+import { createMiniflare, workerSource } from "./harness.mjs";
 import { reproduce } from "../shared/scan-core.mjs";
 
 const SCHEMA = readFileSync(new URL("../schema.sql", import.meta.url), "utf8")
@@ -60,7 +60,6 @@ let otherKeypair;
 let jwk;
 
 before(async () => {
-  ensureBundle();
 
   const genKey = () =>
     crypto.subtle.generateKey(
@@ -72,10 +71,8 @@ before(async () => {
   otherKeypair = await genKey();
   jwk = { ...(await crypto.subtle.exportKey("jwk", keypair.publicKey)), kid: KID, alg: "RS256", use: "sig" };
 
-  mf = new Miniflare({
-    modules: true,
-    scriptPath: WORKER_SCRIPT,
-    modulesRules: MODULE_RULES,
+  mf = createMiniflare({
+    ...workerSource(),
     compatibilityDate: "2026-07-06",
     d1Databases: { DB: "test-db" },
     bindings: { ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD },

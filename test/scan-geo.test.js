@@ -13,8 +13,7 @@ import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { Miniflare } from "miniflare";
-import { WORKER_SCRIPT, MODULE_RULES, ensureBundle } from "./harness.mjs";
+import { createMiniflare, workerSource } from "./harness.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
@@ -31,11 +30,8 @@ const SCHEMA = readFileSync(new URL("../schema.sql", import.meta.url), "utf8")
 // Needs the real ASSETS directory binding (not a mocked service binding): the
 // /s/ branch fetches the homepage HTML from ASSETS before rewriting its head.
 async function makeWorker() {
-  ensureBundle();
-  const mf = new Miniflare({
-    modules: true,
-    scriptPath: WORKER_SCRIPT,
-    modulesRules: MODULE_RULES,
+  const mf = createMiniflare({
+    ...workerSource(),
     compatibilityDate: "2026-07-06",
     d1Databases: { DB: "test-db" },
     assets: {
