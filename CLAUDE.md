@@ -109,6 +109,14 @@ npm run deploy                      # manual deploy; normally unneeded (see Depl
   503. The Worker verifies the Access JWT itself even though Cloudflare's edge also
   gates the route; keep that defense-in-depth. (Both vars are committed in
   `wrangler.jsonc`; they are not secrets.)
+- **Admin scans explorer**: `/admin` is server-rendered HTML with no client JS. The
+  query string picks the view: the last 20 scans (default), `?view=countries`,
+  `?view=cities`, or a drill-down listing every matching scan (`?country=US`, or
+  `?country=US&region=Colorado&city=Denver`; an empty value matches NULL geo), paged
+  with `?page=`. `/api/admin/stats` takes the same parameters and returns the same
+  data as JSON (`getScanView`). New admin views belong in the query string rather
+  than new paths, so they stay inside the Access application's scope (`/admin` +
+  `/api/admin/stats`, see `wrangler.jsonc`).
 - **/s/<id>**: the id is a seed the client uses to reproduce a scan's verdict.
   Served as the homepage with `X-Robots-Tag: noindex`; reproduced scans never beacon
   to /api/scan. The verdict is stateless (pure function of the seed), but the page
@@ -142,6 +150,11 @@ Every test file imports `WORKER_SCRIPT` / `MODULE_RULES` / `ensureBundle` from t
 harness. The per-scan verdict lives in `shared/scan-core.mjs` (imported by the Worker,
 mirrored by `public/script.js`); `test/scan-core.test.js` guards that they stay in
 sync.
+
+The Access-gated admin is tested past the gate in `test/admin.test.js`: it signs its
+own RS256 Access JWT with a throwaway key and serves the matching JWKS through
+Miniflare's `outboundService`, so the scans explorer's JSON and HTML are exercised end
+to end. `test/analytics.test.js` keeps the fail-closed cases (503/401/403).
 
 Browser-level user stories are covered separately by Playwright (`e2e/`, run with
 `npm run e2e`), which drives a real Chromium against a local `wrangler dev`: homepage,

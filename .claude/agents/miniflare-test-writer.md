@@ -46,6 +46,10 @@ browser story to them.
 - The per-scan verdict is deterministic: `shared/scan-core.mjs` `reproduce(seed)` returns
   the same `{ verdict, conf, diag, artifacts, tex, rec }` the client shows. Use frozen
   golden values for `/s/<id>` assertions (see `test/scan-core.test.js`).
+- The Access-gated admin (`/admin`, `/api/admin/stats`) is testable past the gate: see
+  `test/admin.test.js`, which generates an RSA key, signs an RS256 JWT, and serves the
+  JWKS via Miniflare's `outboundService`. The Worker caches the JWKS per isolate for an
+  hour, so a test that needs a different key needs a fresh Miniflare instance.
 
 ## How to work
 

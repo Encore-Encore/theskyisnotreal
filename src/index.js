@@ -2,9 +2,9 @@
  * theskyisnotreal.com, Cloudflare Worker
  *
  * The site is a static landing page served from ./public via the ASSETS
- * binding. This Worker sits in front of the assets so we have a place to add
- * dynamic behaviour later (a live "watchers online" counter, server-side ad
- * config, house-ad rotation, etc.) without re-architecting.
+ * binding. This Worker runs in front of the assets (run_worker_first) and owns
+ * the dynamic bits: the www->apex redirect, the /api/* endpoints, the
+ * Access-gated admin, the agent surfaces, and the per-scan OG cards.
  */
 import { ImageResponse } from "workers-og";
 import { reproduce } from "../shared/scan-core.mjs";
@@ -235,11 +235,12 @@ export default {
     // (/api/admin/stats) are gated by Cloudflare Access: the edge requires login
     // before the request arrives, and we ALSO verify the Access JWT here so the
     // route fails closed if the Access application is ever misconfigured or the
-    // Worker is reached directly (e.g. via workers.dev).
+    // Worker is reached directly (e.g. via workers.dev). Both take the same query
+    // string, which picks the scans explorer view (see getScanView).
     if (url.pathname === "/admin" || url.pathname === "/api/admin/stats") {
       const gate = await requireAccess(request, env);
       if (!gate.ok) return gate.response;
-      const stats = await getStats(env);
+      const stats = await getStats(env, url.searchParams);
       const headers = { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" };
       if (url.pathname === "/api/admin/stats") {
         return Response.json(stats, { headers });
@@ -1070,52 +1071,328 @@ async function verifyAccessJwt(token, env) {
 
 /**
  * The analytics snapshot: total signups, total scans, the 10 most recent
- * signups, and scan counts grouped by country and by city. Human-visitor counts
- * live in Cloudflare Web Analytics (bots/prefetch make self-counting unreliable),
- * so they're intentionally not synthesized here, the dashboard links out to them.
+ * signups, and the scans explorer view picked by the query string. Human-visitor
+ * counts live in Cloudflare Web Analytics (bots/prefetch make self-counting
+ * unreliable), so they're intentionally not synthesized here, the dashboard links
+ * out to them.
  */
-async function getStats(env) {
+async function getStats(env, params) {
   const one = async (sql) => (await env.DB.prepare(sql).first("n")) || 0;
   const many = async (sql) => (await env.DB.prepare(sql).all()).results || [];
 
-  const [subscribers, scans, recent, byCountry, byCity, generatedAt] =
-    await Promise.all([
-      one("SELECT COUNT(*) AS n FROM subscribers"),
-      one("SELECT COUNT(*) AS n FROM scans"),
-      many("SELECT email, created_at FROM subscribers ORDER BY id DESC LIMIT 10"),
-      many(
-        "SELECT COALESCE(country, '??') AS country, COUNT(*) AS n, MAX(created_at) AS last " +
-          "FROM scans GROUP BY country ORDER BY n DESC LIMIT 25"
-      ),
-      many(
-        "SELECT COALESCE(city, 'Unknown') AS city, COALESCE(region, '') AS region, " +
-          "COALESCE(country, '??') AS country, COUNT(*) AS n, MAX(created_at) AS last " +
-          "FROM scans GROUP BY city, region, country ORDER BY n DESC LIMIT 25"
-      ),
-      one("SELECT datetime('now') AS n"),
-    ]);
+  const [subscribers, scans, recent, explorer, generatedAt] = await Promise.all([
+    one("SELECT COUNT(*) AS n FROM subscribers"),
+    one("SELECT COUNT(*) AS n FROM scans"),
+    many("SELECT email, created_at FROM subscribers ORDER BY id DESC LIMIT 10"),
+    getScanView(env, params),
+    one("SELECT datetime('now') AS n"),
+  ]);
 
+  return { subscribers, scans, recentSubscribers: recent, explorer, generatedAt };
+}
+
+// The scans explorer: one admin section with three views, chosen by query string
+// so every view is a plain link (bookmarkable, back-button friendly, no client JS).
+// /api/admin/stats takes the same parameters and returns the same data as JSON.
+//
+//   /admin                     the last ADMIN_RECENT scans, newest first
+//   /admin?view=countries      scan counts per country, each linking to its scans
+//   /admin?view=cities         scan counts per city, each linking to its scans
+//   /admin?country=US          drill-down: every matching scan, newest first
+//   /admin?country=US&region=Colorado&city=Denver
+//
+// Any of country / region / city makes it a drill-down (`view` is then ignored).
+// An absent filter matches anything; a present but empty one matches NULL (unknown
+// geo), which is lossless because the beacon never stores an empty string. The
+// country and city tables and the drill-downs page with ?page=.
+const ADMIN_RECENT = 20;
+const ADMIN_PAGE_SIZE = 100;
+// The filterable columns. Fixed names, never read from the request, so they are
+// safe to splice into SQL; the filter values themselves are always bound.
+const ADMIN_FILTERS = ["country", "region", "city"];
+
+/** Read the explorer state ({ view, filter, page }) from the query string. */
+function parseScanQuery(params) {
+  const filter = {};
+  for (const col of ADMIN_FILTERS) {
+    if (params.has(col)) filter[col] = params.get(col).trim() || null;
+  }
+  const requested = params.get("view");
+  const view = Object.keys(filter).length
+    ? "scans"
+    : requested === "countries" || requested === "cities"
+      ? requested
+      : "recent";
+  const page = Math.max(1, parseInt(params.get("page"), 10) || 1);
+  return { view, filter, page };
+}
+
+/** One scan as the explorer shows it: coarse geo, time, and its reproduced verdict. */
+function adminScanRow(r) {
+  const v = r.seed ? reproduce(r.seed) : null;
   return {
-    subscribers,
-    scans,
-    recentSubscribers: recent,
-    scansByCountry: byCountry,
-    scansByCity: byCity,
-    generatedAt,
+    at: r.created_at,
+    city: r.city,
+    region: r.region,
+    country: r.country,
+    seed: r.seed,
+    verdict: v ? v.verdict : null,
+    confidence: v ? v.conf : null,
   };
 }
 
-/** Minimal, self-contained HTML for the admin snapshot. No external assets. */
-function renderAdmin(stats) {
-  const esc = (s) =>
-    String(s).replace(/[&<>"']/g, (c) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    })[c]);
+/**
+ * The explorer's data for the requested view. The recent view is one capped
+ * query; the paginated views count first, so an out-of-range ?page= clamps to the
+ * last page instead of rendering an empty table.
+ */
+async function getScanView(env, params) {
+  const { view, filter, page } = parseScanQuery(params);
 
+  if (view === "recent") {
+    const { results } = await env.DB.prepare(
+      "SELECT created_at, country, region, city, seed FROM scans ORDER BY id DESC LIMIT ?"
+    )
+      .bind(ADMIN_RECENT)
+      .all();
+    return { view, rows: (results || []).map(adminScanRow) };
+  }
+
+  const cols = Object.keys(filter);
+  const binds = cols.map((c) => filter[c]);
+  // `IS` rather than `=` so a NULL filter value matches the NULL rows.
+  const where = cols.length ? ` WHERE ${cols.map((c) => `${c} IS ?`).join(" AND ")}` : "";
+  // Per view: the columns, the row source, and a total order (ties broken down to
+  // unique keys, so the OFFSET pages of one snapshot never overlap or skip a row;
+  // scans arriving between clicks can still shift rows across a page boundary).
+  const { select, from, order } = {
+    countries: {
+      select: "country, COUNT(*) AS n, MAX(created_at) AS last",
+      from: "scans GROUP BY country",
+      order: "n DESC, last DESC, country",
+    },
+    cities: {
+      select: "city, region, country, COUNT(*) AS n, MAX(created_at) AS last",
+      from: "scans GROUP BY city, region, country",
+      order: "n DESC, last DESC, country, region, city",
+    },
+    scans: {
+      select: "created_at, country, region, city, seed",
+      from: `scans${where}`,
+      order: "id DESC",
+    },
+  }[view];
+
+  const total =
+    (await env.DB.prepare(`SELECT COUNT(*) AS n FROM (SELECT 1 FROM ${from})`)
+      .bind(...binds)
+      .first("n")) || 0;
+  const pages = Math.max(1, Math.ceil(total / ADMIN_PAGE_SIZE));
+  const current = Math.min(page, pages);
+  const { results } = await env.DB.prepare(
+    `SELECT ${select} FROM ${from} ORDER BY ${order} LIMIT ? OFFSET ?`
+  )
+    .bind(...binds, ADMIN_PAGE_SIZE, (current - 1) * ADMIN_PAGE_SIZE)
+    .all();
+
+  const rows = (results || []).map((r) =>
+    view === "scans"
+      ? adminScanRow(r)
+      : view === "countries"
+        ? { country: r.country, scans: r.n, last: r.last }
+        : { city: r.city, region: r.region, country: r.country, scans: r.n, last: r.last }
+  );
+  return { view, filter, page: current, pages, pageSize: ADMIN_PAGE_SIZE, total, rows };
+}
+
+/** HTML-escape for the admin page (text and double-quoted attribute values). */
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[c]);
+}
+
+/** An /admin link to an explorer state that lands on the explorer section. */
+function adminHref(params) {
+  const qs = new URLSearchParams(params).toString();
+  return `/admin${qs ? `?${qs}` : ""}#scans`;
+}
+
+// Drill-down params for a row's country, or its exact city. NULL geo is sent as
+// an empty value, which the explorer reads back as NULL.
+const countryParams = (r) => ({ country: r.country ?? "" });
+const cityParams = (r) => ({ country: r.country ?? "", region: r.region ?? "", city: r.city ?? "" });
+
+// Country names ("United States (US)") via the platform's Intl data, built lazily,
+// plus the two non-ISO codes Cloudflare's edge geo uses.
+const CF_COUNTRIES = { T1: "Tor network", XX: "Unknown" };
+let REGION_NAMES = null;
+function countryLabel(code) {
+  if (!code) return "Unknown";
+  let name = CF_COUNTRIES[code];
+  try {
+    REGION_NAMES = REGION_NAMES || new Intl.DisplayNames(["en"], { type: "region" });
+    name = name || REGION_NAMES.of(code);
+  } catch (e) {
+    /* not a well-formed region code: show it bare */
+  }
+  return name && name !== code ? `${name} (${code})` : code;
+}
+
+/** "Denver, Colorado": the city plus its region, unless the region repeats it. */
+function placeLabel(city, region) {
+  if (!city && !region) return "Unknown city";
+  return region && region !== city ? `${city || "Unknown city"}, ${region}` : city;
+}
+
+/** "5m ago" for a D1 UTC timestamp ("YYYY-MM-DD HH:MM:SS"), like the public feed. */
+function ago(ts, now) {
+  const t = Date.parse(String(ts || "").replace(" ", "T") + "Z");
+  if (isNaN(t)) return "";
+  const s = Math.max(0, Math.floor((now - t) / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+const fmt = (n) => Number(n).toLocaleString("en-US");
+const plural = (n, one, many) => `${fmt(n)} ${n === 1 ? one : many}`;
+
+/** The scans explorer section: view tabs, a trail for drill-downs, the table, a pager. */
+function renderScanExplorer(x, totalScans) {
+  const now = Date.now();
+  const f = x.filter || {};
+  const pinsPlace = "city" in f || "region" in f;
+  const link = (params, text) => `<a href="${esc(adminHref(params))}">${esc(text)}</a>`;
+  // Date and time each stay whole, so a narrow screen only breaks between them.
+  const when = (ts) => {
+    const rel = ago(ts, now);
+    const stamp = String(ts || "")
+      .split(" ")
+      .map((part) => `<span class="ts">${esc(part)}</span>`)
+      .join(" ");
+    return stamp + (rel ? ` <span class="ago muted">${esc(rel)}</span>` : "");
+  };
+  const table = (head, rows, empty) =>
+    `<div class="scroll"><table><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>` +
+    `<tbody>${rows.length ? rows.join("") : `<tr><td colspan="${head.length}" class="muted">${esc(empty)}</td></tr>`}</tbody></table></div>`;
+  // Individual scans. A drill-down hides the columns its filter pins to one value.
+  const scanTable = (rows, empty, { showPlace = true, showCountry = true } = {}) =>
+    table(
+      ["When (UTC)", showPlace && "City", showCountry && "Country", "Verdict"].filter(Boolean),
+      rows.map((r) => {
+        const verdict = r.seed
+          ? `<a href="/s/${esc(r.seed)}" target="_blank" rel="noopener">${esc(r.verdict)} · ${esc(r.confidence)}%</a>`
+          : `<span class="muted">no seed</span>`;
+        return (
+          `<tr><td class="nowrap">${when(r.at)}</td>` +
+          (showPlace ? `<td>${link(cityParams(r), placeLabel(r.city, r.region))}</td>` : "") +
+          (showCountry ? `<td>${link(countryParams(r), countryLabel(r.country))}</td>` : "") +
+          `<td>${verdict}</td></tr>`
+        );
+      }),
+      empty
+    );
+
+  // A drill-down keeps its parent tab lit: a place under "By city", a country
+  // under "By country".
+  const active = x.view === "scans" ? (pinsPlace ? "cities" : "countries") : x.view;
+  const tabs = [
+    ["recent", `Last ${ADMIN_RECENT} scans`, {}],
+    ["countries", "By country", { view: "countries" }],
+    ["cities", "By city", { view: "cities" }],
+  ]
+    .map(
+      ([key, label, params]) =>
+        `<a class="tab" href="${esc(adminHref(params))}"${key === active ? ' aria-current="page"' : ""}>${esc(label)}</a>`
+    )
+    .join("");
+
+  let trail = "";
+  let summary;
+  let body;
+  if (x.view === "recent") {
+    summary =
+      x.rows.length < totalScans
+        ? `Latest ${x.rows.length} of ${plural(totalScans, "scan", "scans")}`
+        : plural(x.rows.length, "scan", "scans");
+    body = scanTable(x.rows, "No scans yet.");
+  } else if (x.view === "countries") {
+    summary = plural(x.total, "country", "countries");
+    body = table(
+      ["Country", "Scans", "Last scan (UTC)"],
+      x.rows.map(
+        (r) =>
+          `<tr><td>${link(countryParams(r), countryLabel(r.country))}</td><td>${fmt(r.scans)}</td>` +
+          `<td class="muted nowrap">${when(r.last)}</td></tr>`
+      ),
+      "No scans yet."
+    );
+  } else if (x.view === "cities") {
+    summary = plural(x.total, "city", "cities");
+    body = table(
+      ["City", "Country", "Scans", "Last scan (UTC)"],
+      x.rows.map(
+        (r) =>
+          `<tr><td>${link(cityParams(r), placeLabel(r.city, r.region))}</td>` +
+          `<td>${link(countryParams(r), countryLabel(r.country))}</td><td>${fmt(r.scans)}</td>` +
+          `<td class="muted nowrap">${when(r.last)}</td></tr>`
+      ),
+      "No scans yet."
+    );
+  } else {
+    // Drill-down trail: back to the parent table, then the country (a link when a
+    // place sits under it), then the place.
+    const steps = [pinsPlace ? link({ view: "cities" }, "By city") : link({ view: "countries" }, "By country")];
+    if ("country" in f) {
+      const label = countryLabel(f.country);
+      steps.push(pinsPlace ? link(countryParams(f), label) : esc(label));
+    }
+    if (pinsPlace) {
+      steps.push(esc("city" in f ? placeLabel(f.city, f.region) : f.region || "Unknown region"));
+    }
+    trail = `<p class="trail">${steps.join(' <span class="muted">›</span> ')}</p>`;
+    summary = plural(x.total, "scan", "scans");
+    body = scanTable(x.rows, "No scans match this filter.", {
+      showPlace: !("city" in f && "region" in f),
+      showCountry: !("country" in f),
+    });
+  }
+
+  let pager = "";
+  if (x.pages > 1) {
+    summary += ` · page ${x.page} of ${x.pages}`;
+    const base =
+      x.view === "scans"
+        ? Object.fromEntries(Object.entries(f).map(([k, v]) => [k, v ?? ""]))
+        : { view: x.view };
+    const at = (page) => (page > 1 ? { ...base, page } : base);
+    const [prev, next] = x.view === "scans" ? ["← Newer", "Older →"] : ["← Previous", "Next →"];
+    pager =
+      `<nav class="pager" aria-label="Pages">` +
+      (x.page > 1 ? link(at(x.page - 1), prev) : "<span></span>") +
+      (x.page < x.pages ? link(at(x.page + 1), next) : "<span></span>") +
+      `</nav>`;
+  }
+
+  return `<section id="scans">
+  <h2>Scans</h2>
+  <nav class="tabs" aria-label="Scan views">${tabs}</nav>
+  ${trail}<p class="count">${esc(summary)}</p>
+  ${body}
+  ${pager}
+</section>`;
+}
+
+/** Minimal, self-contained HTML for the admin snapshot. No external assets, no JS. */
+function renderAdmin(stats) {
   const emailRows = stats.recentSubscribers.length
     ? stats.recentSubscribers
         .map(
@@ -1124,24 +1401,6 @@ function renderAdmin(stats) {
         )
         .join("")
     : `<tr><td colspan="2" class="muted">No signups yet.</td></tr>`;
-
-  const countryRows = stats.scansByCountry.length
-    ? stats.scansByCountry
-        .map(
-          (r) =>
-            `<tr><td>${esc(r.country)}</td><td>${esc(r.n)}</td><td class="muted">${esc(r.last || "")}</td></tr>`
-        )
-        .join("")
-    : `<tr><td colspan="3" class="muted">No scans yet.</td></tr>`;
-
-  const cityRows = stats.scansByCity.length
-    ? stats.scansByCity
-        .map((r) => {
-          const place = [r.city, r.region].filter(Boolean).join(", ") || r.city;
-          return `<tr><td>${esc(place)}</td><td>${esc(r.country)}</td><td>${esc(r.n)}</td><td class="muted">${esc(r.last || "")}</td></tr>`;
-        })
-        .join("")
-    : `<tr><td colspan="4" class="muted">No scans yet.</td></tr>`;
 
   // One-click links to the external consoles this site depends on. These open the
   // provider dashboards directly (the admin page itself is already behind Access).
@@ -1185,19 +1444,40 @@ function renderAdmin(stats) {
   .card .l { color: #8b93a7; font-size: 13px; }
   h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: #9aa3ba;
        margin: 28px 0 10px; }
+  section { scroll-margin-top: 12px; }
   .links { display: flex; flex-wrap: wrap; gap: 10px; }
   .link { display: inline-block; padding: 9px 14px; border-radius: 10px; text-decoration: none;
           background: #0d1018; border: 1px solid #1c2130; color: #cdd6ea; font-size: 13px; }
   .link:hover { border-color: #2b3550; color: #eaf0ff; }
-  table { width: 100%; border-collapse: collapse; background: #0d1018;
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; width: fit-content; max-width: 100%;
+          box-sizing: border-box; padding: 4px; margin: 0 0 14px; background: #0d1018;
+          border: 1px solid #1c2130; border-radius: 10px; }
+  .tab { padding: 7px 14px; border-radius: 7px; color: #9aa3ba; font-size: 13px; text-decoration: none; }
+  .tab:hover { color: #eaf0ff; }
+  .tab[aria-current] { background: #1c2438; color: #eaf0ff; }
+  .trail { margin: 0 0 4px; }
+  .trail a { text-decoration: none; }
+  .count { margin: 0 0 10px; color: #8b93a7; font-size: 13px; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; background: #0d1018;
           border: 1px solid #1c2130; border-radius: 12px; overflow: hidden; }
   th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid #161b28; }
   th { color: #8b93a7; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
   tr:last-child td { border-bottom: 0; }
   td:last-child, th:last-child { text-align: right; }
+  td a { color: #cdd6ea; text-decoration: none; }
+  td a:hover { color: #6ea8fe; text-decoration: underline; }
+  .nowrap, .ts { white-space: nowrap; }
+  .pager { display: flex; justify-content: space-between; margin-top: 10px; font-size: 13px; }
   .muted { color: #6a7285; }
   .note { margin-top: 28px; color: #6a7285; font-size: 13px; }
   a { color: #6ea8fe; }
+  @media (max-width: 640px) {
+    body { padding: 24px 14px; }
+    th, td { padding: 8px 10px; }
+    .nowrap { white-space: normal; }
+    .ago { display: block; }
+  }
 </style></head>
 <body><main>
   <h1>Analytics snapshot</h1>
@@ -1211,17 +1491,11 @@ function renderAdmin(stats) {
   <h2>Consoles</h2>
   <div class="links">${consoleLinks}</div>
 
+  ${renderScanExplorer(stats.explorer, stats.scans)}
+
   <h2>Last 10 signups</h2>
   <table><thead><tr><th>Email</th><th>Signed up (UTC)</th></tr></thead>
   <tbody>${emailRows}</tbody></table>
-
-  <h2>Scans by country</h2>
-  <table><thead><tr><th>Country</th><th>Scans</th><th>Last scan (UTC)</th></tr></thead>
-  <tbody>${countryRows}</tbody></table>
-
-  <h2>Scans by city</h2>
-  <table><thead><tr><th>City</th><th>Country</th><th>Scans</th><th>Last scan (UTC)</th></tr></thead>
-  <tbody>${cityRows}</tbody></table>
 
   <p class="note">Snapshot generated ${esc(stats.generatedAt)} UTC.</p>
 </main></body></html>`;

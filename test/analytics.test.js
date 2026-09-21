@@ -3,10 +3,11 @@
  * the Access-gated admin snapshot (/admin + /api/admin/stats).
  *
  * These run the REAL Worker (src/index.js) inside Miniflare against an in-memory
- * D1 database. The full "valid Access JWT" path needs a signed token + live JWKS,
- * so it isn't exercised here; instead we lock down the security-critical failure
- * modes (unconfigured → 503, no token → 401, bad token → 403), which is what
- * keeps subscriber PII from leaking. Run with: npm test
+ * D1 database. This file locks down the security-critical failure modes
+ * (unconfigured → 503, no token → 401, malformed token → 403), which is what
+ * keeps subscriber PII from leaking. The valid Access JWT path (a signed token
+ * against a live JWKS) and the scans explorer's data/HTML contract are covered
+ * in test/admin.test.js. Run with: npm test
  */
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
