@@ -28,13 +28,16 @@ browser story to them.
 - Dispatch requests through the real Worker with `mf.dispatchFetch(url, init)`.
 - The suite runs against a wrangler-built BUNDLE, not raw `src/index.js`: the Worker
   imports `workers-og` (an npm package with WASM), which Miniflare cannot load directly.
-  `test/harness.mjs` exports `WORKER_SCRIPT` (the bundle path), `MODULE_RULES` (the
-  `CompiledWasm` rule for the resvg/yoga `.wasm`), and `ensureBundle()`. `npm test`
-  builds the bundle first via the `pretest` script; `ensureBundle()` rebuilds it when a
-  source file changed. Every test file already imports these and calls `ensureBundle()`
-  at the top of its `makeWorker()`. When adding a new test file, do the same.
-- Each file keeps its own `makeWorker()` with its Miniflare config, but the script must
-  be `scriptPath: WORKER_SCRIPT` plus `modulesRules: MODULE_RULES`. Config that varies
+  `npm test` builds the bundle first via the `pretest` script.
+- Miniflare 5 takes a new `workers: [...]` options shape and no longer discovers modules
+  through `modulesRules`. `test/harness.mjs` handles both: every file builds its
+  instance with `createMiniflare({ ...workerSource(), compatibilityDate, ... })`.
+  `workerSource()` (re)builds the bundle when a source file changed and returns the
+  explicit module list (entry module plus the resvg/yoga `.wasm`); `createMiniflare()`
+  takes the familiar single-worker (v4) options and converts them with Miniflare's
+  `convertV4MiniflareOptions()`. Never call `new Miniflare()` directly, and do not pass
+  `modulesRules` (the converter rejects it). When adding a new test file, do the same.
+- Each file keeps its own `makeWorker()` with its Miniflare config. Config that varies
   by file: `subscribe.test.js` uses a real `assets` directory binding
   (`assetConfig` + `routerConfig: { has_user_worker: true, invoke_user_worker_ahead_of_assets: true }`,
   which mirrors `run_worker_first`; without it `/api/*` 404s); the others mock ASSETS

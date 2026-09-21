@@ -8,17 +8,13 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { Miniflare } from "miniflare";
-import { WORKER_SCRIPT, MODULE_RULES, ensureBundle } from "./harness.mjs";
+import { createMiniflare, workerSource } from "./harness.mjs";
 
 const root = new URL("..", import.meta.url);
 
 function makeWorker() {
-  ensureBundle();
-  return new Miniflare({
-    modules: true,
-    scriptPath: WORKER_SCRIPT,
-    modulesRules: MODULE_RULES,
+  return createMiniflare({
+    ...workerSource(),
     compatibilityDate: "2026-07-06",
     d1Databases: { DB: "test-db" },
     serviceBindings: {
